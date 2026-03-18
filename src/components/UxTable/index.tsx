@@ -1,12 +1,11 @@
 import React, { useRef } from 'react';
-import type { UxTableProps } from './types';
+import type { UxTableProps, UxTableColumn } from './types';
 import { useResizing } from './hooks/useResizing';
 import { useSorting } from './hooks/useSorting';
 import { useSelection } from './hooks/useSelection';
 import { useEditing } from './hooks/useEditing';
 import { useFixedColumns } from './hooks/useFixedColumns';
-import { Header } from './modules/Header';
-import { Body } from './modules/Body';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
     const { columns: propColumns, data: propData, rowKey, className, style, onDataChange, gridConfig } = props;
@@ -76,6 +75,28 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         saveEdit 
     } = useEditing(finalData, columns, sortedData, onDataChange);
     const fixedOffsets = useFixedColumns(columns);
+
+    // Virtualization
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    // eslint-disable-next-line react-hooks/incompatible-library
+    const rowVirtualizer = useVirtualizer({
+        count: sortedData.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 40, // 默认行高
+        overscan: 5,
+    });
+
+    const colVirtualizer = useVirtualizer({
+        horizontal: true,
+        count: columns.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: (index) => {
+            const width = columns[index].width;
+            return typeof width === 'number' ? width : parseInt(width as string, 10) || 100;
+        },
+        overscan: 2,
+    });
 
     // Keyboard & Paste Handlers
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -180,47 +201,203 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     return (
         <div 
-            ref={tableRef}
+            ref={(node) => {
+                tableRef.current = node;
+                // @ts-expect-error Assigning to read-only ref for virtualizer
+                parentRef.current = node;
+            }}
             tabIndex={0}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             style={{ 
-                overflowX: 'auto', 
+                overflow: 'auto', 
                 position: 'relative', 
                 borderTop: '1px solid #e8e8e8', 
                 borderLeft: '1px solid #e8e8e8',
-                outline: 'none'
+                outline: 'none',
+                height: '100%',
+                width: '100%',
+                ...style
             }}
+            className={className}
         >
-            <table className={className} style={{ ...style, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, width: '100%', userSelect: 'none' }}>
-                <Header 
-                    columns={columns}
-                    sortState={sortState}
-                    fixedOffsets={fixedOffsets}
-                    onSort={handleSort}
-                    onResizeMouseDown={handleResizeMouseDown}
-                />
-                <Body
-                    data={sortedData}
-                    columns={columns}
-                    rowKey={rowKey}
-                    fixedOffsets={fixedOffsets}
-                    isCellSelected={isCellSelected}
-                    isCellActive={isCellActive}
-                    editingCell={editingCell}
-                    editValue={editValue}
-                    tableRef={tableRef}
-                    onCellMouseDown={handleCellMouseDown}
-                    onCellMouseEnter={handleCellMouseEnter}
-                    onCellDoubleClick={startEditing}
-                    onEditChange={setEditValue}
-                    onEditSave={saveEdit}
-                    onEditCancel={() => {
-                        setEditingCell(null);
-                        tableRef.current?.focus();
-                    }}
-                />
-            </table>
+            <div style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: `${colVirtualizer.getTotalSize()}px`,
+                position: 'relative',
+            }}>
+                {/* 渲染表头 */}
+                <div style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 3,
+                    display: 'flex',
+                    height: '40px', // 固定表头高度
+                }}>
+                    {colVirtualizer.getVirtualItems().map((virtualCol) => {
+                        const index = virtualCol.index;
+                        const column = columns[index];
+                        const key = column.key || String(column.dataIndex) || index;
+                        const isFixed = column.fixed;
+                        const offset = fixedOffsets[index];
+
+                        return (
+                            <div
+                                key={key}
+                                onClick={() => handleSort(index)}
+                                style={{
+                                    position: isFixed ? 'sticky' : 'absolute',
+                                    left: isFixed === 'left' ? offset?.left : undefined,
+                                    right: isFixed === 'right' ? offset?.right : undefined,
+                                    transform: isFixed ? undefined : `translateX(${virtualCol.start}px)`,
+                                    width: `${virtualCol.size}px`,
+                                    height: '100%',
+                                    zIndex: isFixed ? 4 : 3,
+                                    backgroundColor: '#fafafa',
+                                    borderBottom: '1px solid #e8e8e8',
+                                    borderRight: '1px solid #e8e8e8',
+                                    boxShadow: offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
+                                    padding: '8px 16px',
+                                    boxSizing: 'border-box',
+                                    textAlign: 'left',
+                                    userSelect: 'none',
+                                    cursor: column.sorter ? 'pointer' : 'default',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}
+                            >
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {column.title as React.ReactNode}
+                                </span>
+                                {column.sorter && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px' }}>
+                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'asc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
+                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'desc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
+                                    </div>
+                                )}
+                                {column.resizable !== false && (
+                                    <div
+                                        onMouseDown={(e) => handleResizeMouseDown(e, index)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            width: '5px',
+                                            cursor: 'col-resize',
+                                            zIndex: 1
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 渲染数据体 */}
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const rowIndex = virtualRow.index;
+                    const record = sortedData[rowIndex];
+                    let rowKeyValue: React.Key = rowIndex;
+                    if (typeof rowKey === 'function') {
+                        rowKeyValue = rowKey(record);
+                    } else if (typeof rowKey === 'string') {
+                        rowKeyValue = (record as Record<string, unknown>)[rowKey] as React.Key;
+                    }
+
+                    return (
+                        <div
+                            key={rowKeyValue}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: `${virtualRow.size}px`,
+                                transform: `translateY(${virtualRow.start + 40}px)`, // +40 为表头高度
+                                display: 'flex',
+                            }}
+                        >
+                            {colVirtualizer.getVirtualItems().map((virtualCol) => {
+                                const colIndex = virtualCol.index;
+                                const column = columns[colIndex];
+                                const colKey = column.key || String(column.dataIndex) || colIndex;
+                                const isFixed = column.fixed;
+                                const offset = fixedOffsets[colIndex];
+                                const isSelected = isCellSelected(rowIndex, colIndex);
+                                const isActive = isCellActive(rowIndex, colIndex);
+                                const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
+                                const value = (record as Record<string, unknown>)[column.dataIndex as string];
+
+                                return (
+                                    <div
+                                        key={colKey}
+                                        onMouseDown={(e) => handleCellMouseDown(e, rowIndex, colIndex)}
+                                        onMouseEnter={() => handleCellMouseEnter(rowIndex, colIndex)}
+                                        onDoubleClick={() => startEditing(rowIndex, colIndex)}
+                                        style={{
+                                            position: isFixed ? 'sticky' : 'absolute',
+                                            left: isFixed === 'left' ? offset?.left : undefined,
+                                            right: isFixed === 'right' ? offset?.right : undefined,
+                                            transform: isFixed ? undefined : `translateX(${virtualCol.start}px)`,
+                                            width: `${virtualCol.size}px`,
+                                            height: '100%',
+                                            zIndex: isFixed ? 2 : 1,
+                                            backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.1)' : '#ffffff',
+                                            borderBottom: '1px solid #e8e8e8',
+                                            borderRight: '1px solid #e8e8e8',
+                                            boxShadow: offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
+                                            padding: isEditing ? 0 : '8px 16px',
+                                            boxSizing: 'border-box',
+                                            overflow: isEditing ? 'visible' : 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            cursor: 'cell',
+                                            outline: isActive ? '2px solid #1890ff' : 'none',
+                                            outlineOffset: '-2px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        {isEditing ? (
+                                            <input
+                                                autoFocus
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                onBlur={saveEdit}
+                                                onKeyDown={(e) => {
+                                                    e.stopPropagation();
+                                                    if (e.key === 'Enter') {
+                                                        saveEdit();
+                                                    } else if (e.key === 'Escape') {
+                                                        setEditingCell(null);
+                                                        tableRef.current?.focus();
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    boxSizing: 'border-box',
+                                                    border: '2px solid #1890ff',
+                                                    padding: '6px 14px',
+                                                    outline: 'none',
+                                                    fontFamily: 'inherit',
+                                                    fontSize: 'inherit'
+                                                }}
+                                            />
+                                        ) : (
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                                                {column.render ? column.render(value, record, rowIndex) : (value as React.ReactNode)}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };
