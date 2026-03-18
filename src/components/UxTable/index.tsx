@@ -76,6 +76,16 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     } = useEditing(finalData, columns, sortedData, onDataChange);
     const fixedOffsets = useFixedColumns(columns);
 
+    // 选区边界计算
+    const selectionBounds = React.useMemo(() => {
+        if (!selection) return null;
+        const r1 = Math.min(selection.start.row, selection.end.row);
+        const r2 = Math.max(selection.start.row, selection.end.row);
+        const c1 = Math.min(selection.start.col, selection.end.col);
+        const c2 = Math.max(selection.start.col, selection.end.col);
+        return { top: r1, bottom: r2, left: c1, right: c2 };
+    }, [selection]);
+
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +103,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         getScrollElement: () => parentRef.current,
         estimateSize: (index) => {
             const width = columns[index].width;
-            return typeof width === 'number' ? width : parseInt(width as string, 10) || 100;
+            return typeof width === 'number' ? width : parseInt(width as unknown as string, 10) || 100;
         },
         overscan: 2,
     });
@@ -217,6 +227,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 outline: 'none',
                 height: '100%',
                 width: '100%',
+                userSelect: 'none', // 防止拖拽时选中文本
                 ...style
             }}
             className={className}
@@ -317,6 +328,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                 height: `${virtualRow.size}px`,
                                 transform: `translateY(${virtualRow.start + 40}px)`, // +40 为表头高度
                                 display: 'flex',
+                                zIndex: rowVirtualizer.getVirtualItems().some(vCol => {
+                                    const rIdx = virtualRow.index;
+                                    const cIdx = vCol.index;
+                                    return isCellActive(rIdx, cIdx) || isCellSelected(rIdx, cIdx);
+                                }) ? 2 : 1 // 提升包含选中单元格的行的层级
                             }}
                         >
                             {colVirtualizer.getVirtualItems().map((virtualCol) => {
@@ -343,19 +359,35 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                             transform: isFixed ? undefined : `translateX(${virtualCol.start}px)`,
                                             width: `${virtualCol.size}px`,
                                             height: '100%',
-                                            zIndex: isFixed ? 2 : 1,
-                                            backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.1)' : '#ffffff',
+                                            zIndex: isActive ? 4 : (isSelected ? 3 : (isFixed ? 2 : 1)),
+                                            backgroundColor: isSelected ? (isActive ? '#ffffff' : 'rgba(24, 144, 255, 0.1)') : '#ffffff',
+                                            // 统一使用 border 绘制基础网格
                                             borderBottom: '1px solid #e8e8e8',
                                             borderRight: '1px solid #e8e8e8',
-                                            boxShadow: offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
+                                            // 使用 box-shadow 模拟边框
+                                            // 注意：为了实现类似 Excel 的外围边框，我们需要在四周分别绘制内阴影
+                                            // 这里通过调整 inset 大小确保边缘可见
+                                            boxShadow: [
+                                                // 选中区域边界高亮 (仅当 isSelected 时才渲染外边框，取消 !isActive 限制，让包含 active 的边缘也能渲染选中边框)
+                                                (isSelected && selectionBounds?.top === rowIndex) ? 'inset 0 2px 0 0 #1890ff' : 'none',
+                                                (isSelected && selectionBounds?.bottom === rowIndex) ? 'inset 0 -2px 0 0 #1890ff' : 'none',
+                                                (isSelected && selectionBounds?.left === colIndex) ? 'inset 2px 0 0 0 #1890ff' : 'none',
+                                                (isSelected && selectionBounds?.right === colIndex) ? 'inset -2px 0 0 0 #1890ff' : 'none',
+                                                // active 单元格的内边框 (如果它也在边缘，会被上面的 2px 覆盖或叠加，这里保持为 1px 以示区别，或者不加)
+                                                // 实际上 Excel 中 active 单元格没有单独的蓝框，除非它不是多选区。
+                                                // 但为了明确当前光标，我们给它一个稍弱的内阴影，或者依赖 backgroundColor: #fff 来区分
+                                                // 修正：如果只是单个单元格选中，它应该有 2px 边框；如果是多选区，active 单元格不需要四周的边框，只需要背景色为白即可
+                                                (isActive && (!selectionBounds || (selectionBounds.top === selectionBounds.bottom && selectionBounds.left === selectionBounds.right))) ? 'inset 0 0 0 2px #1890ff' : 'none',
+                                                // 固定列阴影
+                                                offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : 'none',
+                                                offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'
+                                            ].filter(s => s !== 'none').join(', ') || 'none',
                                             padding: isEditing ? 0 : '8px 16px',
                                             boxSizing: 'border-box',
                                             overflow: isEditing ? 'visible' : 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
                                             cursor: 'cell',
-                                            outline: isActive ? '2px solid #1890ff' : 'none',
-                                            outlineOffset: '-2px',
                                             display: 'flex',
                                             alignItems: 'center'
                                         }}
