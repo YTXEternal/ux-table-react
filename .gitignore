@@ -25,3 +25,6 @@ dist-ssr
 pnpm-lock.yaml
 
 docs/.vitepress/cache/*
+
+
+cypress/screenshots/*

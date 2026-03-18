@@ -90,6 +90,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
+    const isCancelingRef = useRef(false);
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -109,6 +110,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         },
         overscan: 2,
     });
+
+    // Notify virtualizer when column widths change
+    React.useEffect(() => {
+        colVirtualizer.measure();
+    }, [columns, colVirtualizer]);
 
     // 滚动同步 (按比例同步，因为底部滚动条和主表格的可视宽度不同)
     const handleMainScroll = () => {
@@ -303,7 +309,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     zIndex: 3,
                     display: 'flex',
                     height: '40px', // 固定表头高度
-                }}>
+                }} data-testid="ux-table-header-row">
                     {colVirtualizer.getVirtualItems().map((virtualCol) => {
                         const index = virtualCol.index;
                         const column = columns[index];
@@ -314,6 +320,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                         return (
                             <div
                                 key={key}
+                                data-testid={`ux-table-header-cell-${index}`}
                                 onClick={() => handleSort(index)}
                                 style={{
                                     position: isFixed ? 'sticky' : 'absolute',
@@ -348,6 +355,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                 )}
                                 {column.resizable !== false && (
                                     <div
+                                        data-testid={`ux-table-resizer-${index}`}
                                         onMouseDown={(e) => handleResizeMouseDown(e, index)}
                                         style={{
                                             position: 'absolute',
@@ -379,6 +387,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     return (
                         <div
                             key={rowKeyValue}
+                            data-testid={`ux-table-row-${rowIndex}`}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -408,6 +417,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                 return (
                                     <div
                                         key={colKey}
+                                        data-testid={`ux-table-cell-${rowIndex}-${colIndex}`}
                                         onMouseDown={(e) => handleCellMouseDown(e, rowIndex, colIndex)}
                                         onMouseEnter={() => handleCellMouseEnter(rowIndex, colIndex)}
                                         onDoubleClick={() => startEditing(rowIndex, colIndex)}
@@ -456,12 +466,18 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                                 autoFocus
                                                 value={editValue}
                                                 onChange={(e) => setEditValue(e.target.value)}
-                                                onBlur={saveEdit}
+                                                onBlur={() => {
+                                                    if (!isCancelingRef.current) {
+                                                        saveEdit();
+                                                    }
+                                                    isCancelingRef.current = false;
+                                                }}
                                                 onKeyDown={(e) => {
                                                     e.stopPropagation();
                                                     if (e.key === 'Enter') {
                                                         saveEdit();
                                                     } else if (e.key === 'Escape') {
+                                                        isCancelingRef.current = true;
                                                         setEditingCell(null);
                                                         tableRef.current?.focus();
                                                     }
