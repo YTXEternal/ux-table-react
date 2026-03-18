@@ -1,148 +1,145 @@
-describe('UxTable Component', () => {
+describe('UxTable 组件', () => {
   beforeEach(() => {
     cy.visit('/');
-    // Wait for virtualizer to render initially
+    // 等待虚拟列表初始渲染完成
     cy.get('[data-testid="ux-table-header-row"]').should('exist');
   });
 
-  describe('Rendering', () => {
-    it('should render table headers correctly', () => {
-      // Check first few headers based on App.tsx mock data
+  describe('渲染测试', () => {
+    it('应该正确渲染表头', () => {
+      // 检查前几个表头内容（基于 App.tsx 的 mock 数据）
       cy.get('[data-testid="ux-table-header-cell-0"]').should('contain', '固定列');
       cy.get('[data-testid="ux-table-header-cell-1"]').should('contain', '列 1');
       cy.get('[data-testid="ux-table-header-cell-2"]').should('contain', '列 2');
     });
 
-    it('should render table data rows correctly', () => {
-      // Check first row content
+    it('应该正确渲染数据行', () => {
+      // 检查第一行的内容
       cy.get('[data-testid="ux-table-cell-0-0"]').should('contain', '数据 0-0');
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', '数据 0-1');
       
-      // Check second row content
+      // 检查第二行的内容
       cy.get('[data-testid="ux-table-cell-1-0"]').should('contain', '数据 1-0');
       cy.get('[data-testid="ux-table-cell-1-1"]').should('contain', '数据 1-1');
     });
 
-    it('should handle fixed columns correctly', () => {
-      // Check sticky styles for left fixed column (固定列)
+    it('应该正确处理固定列样式', () => {
+      // 检查左侧固定列（固定列）的 sticky 样式
       cy.get('[data-testid="ux-table-header-cell-0"]').should('have.css', 'position', 'sticky');
       cy.get('[data-testid="ux-table-header-cell-0"]').should('have.css', 'left', '0px');
       
-      // The second column should not be sticky
+      // 第二列应该是非固定列
       cy.get('[data-testid="ux-table-header-cell-1"]').should('have.css', 'position', 'absolute');
     });
   });
 
-  describe('Selection', () => {
-    it('should select a cell on click', () => {
-      // Click on first cell
+  describe('选中与聚焦测试', () => {
+    it('单击单元格时应该正确选中并聚焦', () => {
+      // 单击第一个单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
       
-      // Check if it has the active selection background or box-shadow
-      // Based on our implementation, active cell in single selection has 'inset 0 0 0 2px #1890ff' or similar
+      // 检查是否具有活动选中状态的 box-shadow
+      // 根据实现，单选的活动单元格具有 'inset 0 0 0 2px #1890ff' 样式
       cy.get('[data-testid="ux-table-cell-0-0"]')
         .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)'); // #1890ff in rgb
+        .and('include', 'rgb(24, 144, 255)'); // #1890ff 对应的 rgb
     });
 
-    it('should handle keyboard navigation', () => {
-      // Click on first cell to focus
+    it('应该支持键盘方向键导航', () => {
+      // 点击第一个单元格使其聚焦
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
       
-      // Press ArrowRight
+      // 按下向右箭头
       cy.get('body').type('{rightarrow}');
       
-      // Next cell should be active
+      // 右侧相邻的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-0-1"]')
         .should('have.css', 'box-shadow')
         .and('include', 'rgb(24, 144, 255)');
         
-      // Press ArrowDown
+      // 按下向下箭头
       cy.get('body').type('{downarrow}');
       
-      // Cell below should be active
+      // 下方的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-1-1"]')
         .should('have.css', 'box-shadow')
         .and('include', 'rgb(24, 144, 255)');
     });
   });
 
-  describe('Editing', () => {
-    it('should enter edit mode on double click and save value', () => {
+  describe('编辑功能测试', () => {
+    it('双击单元格应该进入编辑模式并允许保存值', () => {
       const newName = 'Edited Value';
       
-      // Double click on first cell
-      // { force: true } ensures it clicks even if partially covered by sticky header
+      // 双击第一个单元格
+      // { force: true } 确保即使被 sticky 表头部分遮挡也能点击成功
       cy.get('[data-testid="ux-table-cell-0-0"]').dblclick({ force: true });
       
-      // Check if input exists and is focused
+      // 检查输入框是否存在并且处于焦点状态
       cy.get('[data-testid="ux-table-cell-0-0"] input').should('exist').and('have.focus');
       
-      // Type new value and press Enter
+      // 输入新值并按下回车键
       cy.get('[data-testid="ux-table-cell-0-0"] input').clear({ force: true }).type(`${newName}{enter}`, { force: true });
       
-      // Check if value is updated in the cell
+      // 检查单元格内的值是否已更新
       cy.get('[data-testid="ux-table-cell-0-0"]').should('contain', newName);
       
-      // Input should be gone
+      // 输入框应该消失
       cy.get('[data-testid="ux-table-cell-0-0"] input').should('not.exist');
     });
 
-    it('should cancel edit on Escape', () => {
+    it('按下 Escape 键应该取消编辑并恢复原值', () => {
       const originalName = '数据 0-0';
       
-      // Double click on first cell
+      // 双击第一个单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').dblclick({ force: true });
       
-      // Type something but press Escape
+      // 输入一些内容然后按下 Escape 键
       cy.get('[data-testid="ux-table-cell-0-0"] input').clear({ force: true }).type('Cancelled Edit{esc}', { force: true });
       
-      // Check if value remains original
+      // 检查单元格内容是否保持原样
       cy.get('[data-testid="ux-table-cell-0-0"]').should('contain', originalName);
       cy.get('[data-testid="ux-table-cell-0-0"] input').should('not.exist');
     });
 
-    it('should start editing on typing', () => {
-      // Click to select
+    it('聚焦状态下直接输入字母应该唤起编辑模式', () => {
+      // 点击选中单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click({ force: true });
       
-      // Type directly 'X'
+      // 直接输入 'X'
       cy.get('body').type('X');
       
-      // Input should appear and have value 'X'
+      // 输入框应该出现并且值为 'X'
       cy.get('[data-testid="ux-table-cell-0-0"] input').should('have.value', 'X');
     });
   });
 
-  describe('Sorting', () => {
-    it('should sort data when clicking header', () => {
-      // Sort by 固定列 (1st column)
-      // Initial is 数据 0-0, 数据 1-0, 数据 2-0...
+  describe('排序功能测试', () => {
+    it('点击表头应该对数据进行排序', () => {
+      // 按第一列 (固定列) 排序
+      // 初始数据顺序是 数据 0-0, 数据 1-0, 数据 2-0...
       
-      // Click header -> Ascending (Wait, data is already asc. Let's click twice for Descending)
-      cy.get('[data-testid="ux-table-header-cell-0"]').click(); // Asc
-      cy.get('[data-testid="ux-table-header-cell-0"]').click(); // Desc
+      // 点击表头 -> 升序 (由于已经是升序，我们连点两次测试降序)
+      cy.get('[data-testid="ux-table-header-cell-0"]').click(); // 升序
+      cy.get('[data-testid="ux-table-header-cell-0"]').click(); // 降序
       
-      // Expect the last item to be first now. The data generation creates 6 items natively, 
-      // but gridConfig pads it to 20 rows. 
-      // Row 5 has "数据 5-0", Row 6 has "_grid_row_6" or undefined for col_0 depending on pad logic.
-      // Let's just check if row 0 cell 0 changed from "数据 0-0"
+      // 降序后，第一行第一列的数据肯定不再是 "数据 0-0"
       cy.get('[data-testid="ux-table-cell-0-0"]').should('not.contain', '数据 0-0');
     });
   });
 
-  describe.skip('Resizing', () => {
-    it('should resize column width', () => {
-      // Get initial width of first column
+  describe.skip('列宽调整测试', () => {
+    it('拖拽调整手柄应该改变列宽', () => {
+      // 获取第一列的初始宽度
       cy.get('[data-testid="ux-table-header-cell-0"]').invoke('width').then((initialWidth) => {
         
-        // Trigger mousedown on the resizer
+        // 在调整手柄上触发鼠标按下事件
         cy.get('[data-testid="ux-table-resizer-0"]')
           .trigger('mousedown', { button: 0, clientX: 100, clientY: 10, force: true })
           .trigger('mousemove', { clientX: 150, clientY: 10, force: true })
           .trigger('mouseup', { force: true });
         
-        // Check new width (should be larger)
+        // 检查新宽度是否变大了
         cy.wait(100);
         cy.get('[data-testid="ux-table-header-cell-0"]').invoke('width').should('be.gt', initialWidth);
       });
