@@ -6,9 +6,10 @@ import { useSelection } from './hooks/useSelection';
 import { useEditing } from './hooks/useEditing';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import styles from './styles.module.css';
 
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
-    const { columns: propColumns, data: propData, rowKey, className, style, onDataChange, gridConfig } = props;
+    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig } = props;
     const tableRef = useRef<HTMLDivElement>(null);
 
     // 补齐 data 和 columns
@@ -88,6 +89,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
+    const scrollbarRef = useRef<HTMLDivElement>(null);
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -107,6 +109,52 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         },
         overscan: 2,
     });
+
+    // 滚动同步 (按比例同步，因为底部滚动条和主表格的可视宽度不同)
+    const handleMainScroll = () => {
+        if (scrollbarRef.current && parentRef.current) {
+            const main = parentRef.current;
+            const scroll = scrollbarRef.current;
+            
+            const mainMax = main.scrollWidth - main.clientWidth;
+            const scrollMax = scroll.scrollWidth - scroll.clientWidth;
+            
+            if (mainMax <= 0 || scrollMax <= 0) return;
+            
+            const percentage = main.scrollLeft / mainMax;
+            const targetScrollLeft = percentage * scrollMax;
+            
+            if (Math.abs(scroll.scrollLeft - targetScrollLeft) > 1) {
+                scroll.scrollLeft = targetScrollLeft;
+            }
+        }
+    };
+
+    const handleBottomScroll = () => {
+        if (scrollbarRef.current && parentRef.current) {
+            const main = parentRef.current;
+            const scroll = scrollbarRef.current;
+            
+            const mainMax = main.scrollWidth - main.clientWidth;
+            const scrollMax = scroll.scrollWidth - scroll.clientWidth;
+            
+            if (mainMax <= 0 || scrollMax <= 0) return;
+
+            const percentage = scroll.scrollLeft / scrollMax;
+            const targetScrollLeft = percentage * mainMax;
+
+            if (Math.abs(main.scrollLeft - targetScrollLeft) > 1) {
+                main.scrollLeft = targetScrollLeft;
+            }
+        }
+    };
+
+    // 支持触控板横向滚动
+    const handleWheel = (e: React.WheelEvent) => {
+        if (e.deltaX !== 0 && parentRef.current) {
+            parentRef.current.scrollLeft += e.deltaX;
+        }
+    };
 
     // Keyboard & Paste Handlers
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -211,32 +259,43 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     return (
         <div 
-            ref={(node) => {
-                tableRef.current = node;
-                // @ts-expect-error Assigning to read-only ref for virtualizer
-                parentRef.current = node;
-            }}
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
+            className={`${styles['ux-table-wrapper']} ${className || ''}`}
             style={{ 
-                overflow: 'auto', 
-                position: 'relative', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                height: '100%', 
+                width: '100%', 
                 borderTop: '1px solid #e8e8e8', 
                 borderLeft: '1px solid #e8e8e8',
-                outline: 'none',
-                height: '100%',
-                width: '100%',
-                userSelect: 'none', // 防止拖拽时选中文本
-                ...style
+                ...props.style 
             }}
-            className={className}
         >
-            <div style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                width: `${colVirtualizer.getTotalSize()}px`,
-                position: 'relative',
-            }}>
+            <div 
+                ref={(node) => {
+                    tableRef.current = node;
+                    // @ts-expect-error Assigning to read-only ref for virtualizer
+                    parentRef.current = node;
+                }}
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onScroll={handleMainScroll}
+                onWheel={handleWheel}
+                style={{ 
+                    overflowY: 'auto', 
+                    overflowX: 'hidden', /* 隐藏横向滚动条，通过底部滚动条控制 */
+                    flex: 1,
+                    position: 'relative', 
+                    outline: 'none',
+                    userSelect: 'none', // 防止拖拽时选中文本
+                }}
+                className={styles['ux-table-main']}
+            >
+                <div style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: `${colVirtualizer.getTotalSize()}px`,
+                    position: 'relative',
+                }}>
                 {/* 渲染表头 */}
                 <div style={{
                     position: 'sticky',
@@ -431,5 +490,24 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 })}
             </div>
         </div>
+
+        {/* 底部标签页与滚动条区域 */}
+        <div className={styles['ux-table-bottom-bar']}>
+            {/* 左侧：标签页 (暂作示例) */}
+            <div className={styles['ux-table-tabs']}>
+                <div className={`${styles['ux-table-tab']} ${styles['active']}`}>Sheet1</div>
+                <div className={styles['ux-table-tab']}>+</div>
+            </div>
+            
+            {/* 右侧：同步横向滚动条 */}
+            <div 
+                ref={scrollbarRef}
+                className={styles['ux-table-scrollbar-x']}
+                onScroll={handleBottomScroll}
+            >
+                <div style={{ width: `${colVirtualizer.getTotalSize()}px`, height: '1px' }} />
+            </div>
+        </div>
+    </div>
     );
 };
