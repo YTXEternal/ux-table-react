@@ -65,4 +65,11 @@ export interface UxTableProps<DataSource extends unknown[]> {
    * 数据发生变化时的回调 (例如编辑单元格后)
    */
   onDataChange?: (newData: DataSource) => void;
+  /**
+   * 网格配置，如果指定了 rows 和 cols，即使 data 和 columns 不足也会补齐空单元格，类似 Excel 画布
+   */
+  gridConfig?: {
+    rows: number;
+    cols: number;
+  };
 }

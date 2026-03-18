@@ -1,82 +1,71 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { UxTable } from './components/UxTable';
 import type { UxTableColumn } from './components/UxTable/types';
 
 interface DataType {
   key: string;
-  name: string;
-  age: number;
-  address: string;
+  [key: string]: string | number;
 }
 
-const initialData: DataType[] = [
-  {
-    key: '1',
-    name: 'John Brown',
-    age: 32,
-    address: 'New York No. 1 Lake Park',
-  },
-  {
-    key: '2',
-    name: 'Jim Green',
-    age: 42,
-    address: 'London No. 1 Lake Park',
-  },
-  {
-    key: '3',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sydney No. 1 Lake Park',
-  },
-];
+// 生成大规模数据
+const generateData = (rows: number, cols: number): DataType[] => {
+  const data: DataType[] = [];
+  for (let i = 0; i < rows; i++) {
+    const item: DataType = { key: `${i}` };
+    for (let j = 0; j < cols; j++) {
+      item[`col_${j}`] = `数据 ${i}-${j}`;
+    }
+    data.push(item);
+  }
+  return data;
+};
+
+// 生成大规模列定义
+const generateColumns = (cols: number): UxTableColumn<DataType>[] => {
+  const columns: UxTableColumn<DataType>[] = [];
+  
+  // 固定第一列
+  columns.push({
+    title: '固定列',
+    dataIndex: 'col_0',
+    key: 'col_0',
+    width: 150,
+    fixed: 'left',
+    editable: true,
+    sorter: (a, b) => String(a.col_0).localeCompare(String(b.col_0))
+  });
+
+  for (let i = 1; i < cols; i++) {
+    columns.push({
+      title: `列 ${i}`,
+      dataIndex: `col_${i}`,
+      key: `col_${i}`,
+      width: 120,
+      editable: true,
+    });
+  }
+
+  return columns;
+};
 
 function App() {
+  // 使用 useMemo 缓存初始数据，避免重复生成
+  const initialData = useMemo(() => generateData(6, 20), []);
+  const initialColumns = useMemo(() => generateColumns(20), []);
+
   const [data, setData] = useState(initialData);
 
-  const columns: UxTableColumn<DataType[]> = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      width: 150,
-      fixed: 'left',
-      editable: true,
-      sorter: (a, b) => a.name.localeCompare(b.name)
-    },
-    {
-      title: 'Age',
-      dataIndex: 'age',
-      key: 'age',
-      width: 100,
-      editable: true,
-      sorter: (a, b) => a.age - b.age
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-      width: 300,
-      editable: true,
-    },
-    {
-      title: 'Action',
-      dataIndex: 'key',
-      key: 'action',
-      width: 100,
-      fixed: 'right',
-      render: () => <a href="#">Delete</a>,
-    }
-  ];
-
   return (
-    <div style={{ padding: 20 }}>
-      <h1>UxTable Demo</h1>
-      <div style={{ width: 600 }}>
+    <div style={{ padding: 20, height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <h1>UxTable 网格画布演示</h1>
+      <div style={{ flex: 1, overflow: 'hidden' }}>
         <UxTable<DataType[]> 
-          columns={columns} 
+          columns={initialColumns} 
           data={data} 
           rowKey="key"
           onDataChange={setData}
+          gridConfig={{ rows: 20, cols: 20 }}
+          style={{ height: '100%' }}
         />
       </div>
     </div>
@@ -84,4 +73,3 @@ function App() {
 }
 
 export default App
-
