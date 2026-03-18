@@ -29,7 +29,6 @@ export const Cell = <DataSource extends unknown[]>({
     isActive,
     isEditing,
     editValue,
-    tableRef,
     onMouseDown,
     onMouseEnter,
     onDoubleClick,
@@ -39,6 +38,8 @@ export const Cell = <DataSource extends unknown[]>({
 }: CellProps<DataSource>) => {
     const value = (record as Record<string, unknown>)[column.dataIndex as string];
     const isFixed = column.fixed;
+
+    const isCancelingRef = React.useRef(false);
 
     return (
         <td 
@@ -68,14 +69,23 @@ export const Cell = <DataSource extends unknown[]>({
                     autoFocus
                     value={editValue}
                     onChange={(e) => onEditChange(e.target.value)}
-                    onBlur={onEditSave}
+                    onBlur={() => {
+                        if (isCancelingRef.current) {
+                            isCancelingRef.current = false;
+                            return;
+                        }
+                        onEditSave();
+                    }}
                     onKeyDown={(e) => {
                         e.stopPropagation(); 
                         if (e.key === 'Enter') {
                             onEditSave();
                         } else if (e.key === 'Escape') {
+                            isCancelingRef.current = true;
                             onEditCancel();
-                            tableRef.current?.focus();
+                            // tableRef focus is handled by onEditCancel callback in parent or here?
+                            // In UxTable.tsx, onEditCancel does focus.
+                            // But let's keep it consistent.
                         }
                     }}
                     style={{
