@@ -9,12 +9,56 @@ import { Header } from './modules/Header';
 import { Body } from './modules/Body';
 
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
-    const { columns: propColumns, data, rowKey, className, style, onDataChange } = props;
+    const { columns: propColumns, data: propData, rowKey, className, style, onDataChange, gridConfig } = props;
     const tableRef = useRef<HTMLDivElement>(null);
 
+    // 补齐 data 和 columns
+    const { finalColumns, finalData } = React.useMemo(() => {
+        const columns = [...propColumns];
+        const data = [...propData] as DataSource;
+
+        if (gridConfig) {
+            const { rows, cols } = gridConfig;
+            
+            // 补齐列
+            if (columns.length < cols) {
+                for (let i = columns.length; i < cols; i++) {
+                    // 生成类似 Excel 的列名 A, B, C... Z, AA...
+                    let temp = i;
+                    let colName = '';
+                    while (temp >= 0) {
+                        colName = String.fromCharCode((temp % 26) + 65) + colName;
+                        temp = Math.floor(temp / 26) - 1;
+                    }
+
+                    columns.push({
+                        title: colName,
+                        dataIndex: `_grid_col_${i}` as keyof DataSource[number],
+                        key: `_grid_col_${i}`,
+                        width: 100,
+                        editable: true,
+                    } as unknown as UxTableColumn<DataSource[number]>);
+                }
+            }
+
+            // 补齐行
+            if (data.length < rows) {
+                for (let i = data.length; i < rows; i++) {
+                    const newRow: Record<string, unknown> = {};
+                    if (typeof rowKey === 'string') {
+                        newRow[rowKey] = `_grid_row_${i}`;
+                    }
+                    data.push(newRow as DataSource[number]);
+                }
+            }
+        }
+
+        return { finalColumns: columns, finalData: data };
+    }, [propColumns, propData, gridConfig, rowKey]);
+
     // Hooks
-    const { columns, handleResizeMouseDown } = useResizing(propColumns);
-    const { sortState, handleSort, sortedData } = useSorting(data, columns);
+    const { columns, handleResizeMouseDown } = useResizing(finalColumns);
+    const { sortState, handleSort, sortedData } = useSorting(finalData, columns);
     const { 
         selection, 
         setSelection, 
@@ -30,7 +74,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         setEditValue, 
         startEditing, 
         saveEdit 
-    } = useEditing(data, columns, sortedData, onDataChange);
+    } = useEditing(finalData, columns, sortedData, onDataChange);
     const fixedOffsets = useFixedColumns(columns);
 
     // Keyboard & Paste Handlers
@@ -42,6 +86,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const { start } = selection;
         const currentRow = start.row;
         const currentCol = start.col;
+        const rowCount = sortedData.length;
+        const colCount = columns.length;
 
         if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -49,7 +95,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
-            const newRow = Math.min(sortedData.length - 1, currentRow + 1);
+            const newRow = Math.min(rowCount - 1, currentRow + 1);
             setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
@@ -57,7 +103,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
-            const newCol = Math.min(columns.length - 1, currentCol + 1);
+            const newCol = Math.min(colCount - 1, currentCol + 1);
             setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
         } else if (e.key === 'Enter') {
             e.preventDefault();
@@ -100,7 +146,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const startRow = Math.min(selection.start.row, selection.end.row);
         const startCol = Math.min(selection.start.col, selection.end.col);
 
-        const newData = [...data] as DataSource;
+        const newData = [...finalData] as DataSource;
         let changed = false;
 
         rows.forEach((rowStr, rIdx) => {
@@ -109,10 +155,10 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             
             const cells = rowStr.split('\t');
             const record = sortedData[targetRowIdx];
-            const originalIndex = data.indexOf(record);
+            const originalIndex = finalData.indexOf(record);
             if (originalIndex === -1) return;
 
-            const newRecord = { ...data[originalIndex] as object };
+            const newRecord = { ...finalData[originalIndex] as object };
             
             cells.forEach((cellStr, cIdx) => {
                 const targetColIdx = startCol + cIdx;

@@ -29,7 +29,6 @@ export const Cell = <DataSource extends unknown[]>({
     isActive,
     isEditing,
     editValue,
-    tableRef,
     onMouseDown,
     onMouseEnter,
     onDoubleClick,
