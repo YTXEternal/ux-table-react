@@ -7,7 +7,7 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/' },
-      { text: 'Components', link: '/components/button' }
+      { text: 'Components', link: '/components/ux-table' }
     ],
 
     sidebar: [
@@ -21,7 +21,7 @@ export default defineConfig({
       {
         text: 'Components',
         items: [
-          { text: 'Button', link: '/components/button' }
+          { text: 'UxTable', link: '/components/ux-table' }
         ]
       }
     ],

@@ -279,7 +279,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             <div 
                 ref={(node) => {
                     tableRef.current = node;
-                    // @ts-expect-error Assigning to read-only ref for virtualizer
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore Assigning to read-only ref for virtualizer
                     parentRef.current = node;
                 }}
                 tabIndex={0}
