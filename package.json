@@ -1,7 +1,7 @@
 {
   "name": "ux-table-react",
   "private": false,
-  "version": "0.0.0",
+  "version": "1.0.0-rc.0",
   "description": "A high-performance React table component with sorting, editing, and fixed column support, built with UnoCSS.",
   "keywords": [
     "react",
