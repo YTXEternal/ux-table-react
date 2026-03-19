@@ -9,13 +9,114 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
 
+/**
+ * 根据索引生成类似 Excel 的列名 A, B, C... Z, AA...
+ * @param {number} index 列索引
+ * @returns {string} 列名
+ */
+const getExcelColumnName = (index: number): string => {
+    let temp = index;
+    let colName = '';
+    while (temp >= 0) {
+        colName = String.fromCharCode((temp % 26) + 65) + colName;
+        temp = Math.floor(temp / 26) - 1;
+    }
+    return colName;
+};
+
+/**
+ * 同步滚动条位置，复用滚动逻辑
+ * @param {HTMLElement | null} source 源滚动容器
+ * @param {HTMLElement | null} target 目标滚动容器
+ * @returns {void}
+ */
+const syncScroll = (source: HTMLElement | null, target: HTMLElement | null): void => {
+    if (!source || !target) return; // 卫语句：校验 DOM 元素是否存在
+
+    const sourceMax = source.scrollWidth - source.clientWidth;
+    const targetMax = target.scrollWidth - target.clientWidth;
+
+    if (sourceMax <= 0 || targetMax <= 0) return; // 卫语句：校验是否需要滚动
+
+    const percentage = source.scrollLeft / sourceMax;
+    const targetScrollLeft = percentage * targetMax;
+
+    if (Math.abs(target.scrollLeft - targetScrollLeft) > 1) {
+        target.scrollLeft = targetScrollLeft;
+    }
+};
+
+/**
+ * 补齐并格式化表格列配置
+ * @template {unknown[]} DataSource
+ * @param {UxTableColumn<DataSource[number]>[]} columns 原始列配置
+ * @param {number} targetCols 目标列数
+ * @returns {UxTableColumn<DataSource[number]>[]} 格式化后的列配置
+ */
+const fillGridColumns = <DataSource extends unknown[]>(
+    columns: UxTableColumn<DataSource[number]>[],
+    targetCols: number
+): UxTableColumn<DataSource[number]>[] => {
+    if (columns.length >= targetCols) return columns;
+
+    const newColumns = [...columns];
+    for (let i = columns.length; i < targetCols; i++) {
+        newColumns.push({
+            title: getExcelColumnName(i),
+            dataIndex: `_grid_col_${i}` as keyof DataSource[number],
+            key: `_grid_col_${i}`,
+            width: 100,
+            editable: true,
+        } as unknown as UxTableColumn<DataSource[number]>);
+    }
+    return newColumns;
+};
+
+/**
+ * 补齐并格式化表格数据
+ * @template {unknown[]} DataSource
+ * @param {DataSource} propData 原始数据
+ * @param {UxTableColumn<DataSource[number]>[]} columns 列配置
+ * @param {number} targetRows 目标行数
+ * @param {React.Key | ((record: DataSource[number]) => React.Key)} [rowKey] 行键
+ * @returns {DataSource} 格式化后的数据
+ */
+const fillGridData = <DataSource extends unknown[]>(
+    propData: DataSource,
+    columns: UxTableColumn<DataSource[number]>[],
+    targetRows: number,
+    rowKey?: React.Key | ((record: DataSource[number]) => React.Key)
+): DataSource => {
+    const data = new Array(targetRows) as DataSource;
+
+    for (let i = 0; i < targetRows; i++) {
+        const existingRow = propData[i] as Record<string, unknown> | undefined;
+        const newRow: Record<string, unknown> = existingRow ? { ...existingRow } : {};
+
+        if (!existingRow && typeof rowKey === 'string') {
+            newRow[rowKey] = `_grid_row_${i}`;
+        }
+
+        // 确保 dataIndex 对应的值存在，为空则填充 null
+        columns.forEach((col) => {
+            const dataIndex = col.dataIndex as string;
+            if (newRow[dataIndex] === undefined || newRow[dataIndex] === '') {
+                newRow[dataIndex] = null;
+            }
+        });
+
+        data[i] = newRow as DataSource[number];
+    }
+
+    return data;
+};
 
 /**
  * UxTable 组件
  *
  * @template {unknown[]} DataSource 
  * @param {UxTableProps<DataSource>} props 组件的属性，包含列配置、数据数组、行键、类名、数据变化回调、网格配置等
- * @returns {*} 
+ * @returns {React.ReactElement}
  */
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
     const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref } = props;
@@ -23,54 +124,15 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     // 补齐 data 和 columns
     const { finalColumns, finalData } = React.useMemo(() => {
-        const columns = [...propColumns];
+        let columns = [...propColumns];
+        let targetRows = propData.length;
 
         if (gridConfig) {
-            const { cols } = gridConfig;
-            // 补齐列
-            if (columns.length < cols) {
-                for (let i = columns.length; i < cols; i++) {
-                    // 生成类似 Excel 的列名 A, B, C... Z, AA...
-                    let temp = i;
-                    let colName = '';
-                    while (temp >= 0) {
-                        colName = String.fromCharCode((temp % 26) + 65) + colName;
-                        temp = Math.floor(temp / 26) - 1;
-                    }
-
-                    columns.push({
-                        title: colName,
-                        dataIndex: `_grid_col_${i}` as keyof DataSource[number],
-                        key: `_grid_col_${i}`,
-                        width: 100,
-                        editable: true,
-                    } as unknown as UxTableColumn<DataSource[number]>);
-                }
-            }
+            columns = fillGridColumns(columns, gridConfig.cols);
+            targetRows = Math.max(propData.length, gridConfig.rows);
         }
 
-        // 补齐行并填充 null
-        const targetRows = gridConfig ? Math.max(propData.length, gridConfig.rows) : propData.length;
-        const data = new Array(targetRows) as DataSource;
-
-        for (let i = 0; i < targetRows; i++) {
-            const existingRow = propData[i] as Record<string, unknown> | undefined;
-            const newRow: Record<string, unknown> = existingRow ? { ...existingRow } : {};
-
-            if (!existingRow && typeof rowKey === 'string') {
-                newRow[rowKey] = `_grid_row_${i}`;
-            }
-
-            // 遍历所有列，确保 dataIndex 对应的值存在，为空则填充 null
-            columns.forEach((col) => {
-                const dataIndex = col.dataIndex as string;
-                if (newRow[dataIndex] === undefined || newRow[dataIndex] === '') {
-                    newRow[dataIndex] = null;
-                }
-            });
-
-            data[i] = newRow as DataSource[number];
-        }
+        const data = fillGridData(propData, columns, targetRows, rowKey);
 
         return { finalColumns: columns, finalData: data };
     }, [propColumns, propData, gridConfig, rowKey]);
@@ -121,8 +183,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const scrollbarRef = useRef<HTMLDivElement>(null);
     const isCancelingRef = useRef(false);
 
-
-
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
         count: sortedData.length,
@@ -147,44 +207,9 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         colVirtualizer.measure();
     }, [columns, colVirtualizer]);
 
-    // 滚动同步 (按比例同步，因为底部滚动条和主表格的可视宽度不同)
-    const handleMainScroll = () => {
-        if (scrollbarRef.current && parentRef.current) {
-            const main = parentRef.current;
-            const scroll = scrollbarRef.current;
-
-            const mainMax = main.scrollWidth - main.clientWidth;
-            const scrollMax = scroll.scrollWidth - scroll.clientWidth;
-
-            if (mainMax <= 0 || scrollMax <= 0) return;
-
-            const percentage = main.scrollLeft / mainMax;
-            const targetScrollLeft = percentage * scrollMax;
-
-            if (Math.abs(scroll.scrollLeft - targetScrollLeft) > 1) {
-                scroll.scrollLeft = targetScrollLeft;
-            }
-        }
-    };
-
-    const handleBottomScroll = () => {
-        if (scrollbarRef.current && parentRef.current) {
-            const main = parentRef.current;
-            const scroll = scrollbarRef.current;
-
-            const mainMax = main.scrollWidth - main.clientWidth;
-            const scrollMax = scroll.scrollWidth - scroll.clientWidth;
-
-            if (mainMax <= 0 || scrollMax <= 0) return;
-
-            const percentage = scroll.scrollLeft / scrollMax;
-            const targetScrollLeft = percentage * mainMax;
-
-            if (Math.abs(main.scrollLeft - targetScrollLeft) > 1) {
-                main.scrollLeft = targetScrollLeft;
-            }
-        }
-    };
+    // 滚动同步复用
+    const handleMainScroll = () => syncScroll(parentRef.current, scrollbarRef.current);
+    const handleBottomScroll = () => syncScroll(scrollbarRef.current, parentRef.current);
 
     // 支持触控板横向滚动
     const handleWheel = (e: React.WheelEvent) => {
@@ -193,48 +218,67 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         }
     };
 
-    // Keyboard & Paste Handlers
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (editingCell) return; // Handled in Cell input
-
-        if (!selection) return;
-
-        const { start } = selection;
-        const currentRow = start.row;
-        const currentCol = start.col;
+    // 键盘事件策略模式处理
+    const executeKeyboardStrategy = (e: React.KeyboardEvent, currentRow: number, currentCol: number): boolean => {
         const rowCount = sortedData.length;
         const colCount = columns.length;
 
-        if (e.key === 'ArrowUp') {
+        const strategies: Record<string, () => void> = {
+            ArrowUp: () => {
+                const newRow = Math.max(0, currentRow - 1);
+                setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
+            },
+            ArrowDown: () => {
+                const newRow = Math.min(rowCount - 1, currentRow + 1);
+                setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
+            },
+            ArrowLeft: () => {
+                const newCol = Math.max(0, currentCol - 1);
+                setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
+            },
+            ArrowRight: () => {
+                const newCol = Math.min(colCount - 1, currentCol + 1);
+                setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
+            },
+            Enter: () => {
+                startEditing(currentRow, currentCol);
+            }
+        };
+
+        const strategy = strategies[e.key];
+        if (strategy) {
             e.preventDefault();
-            const newRow = Math.max(0, currentRow - 1);
-            setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            const newRow = Math.min(rowCount - 1, currentRow + 1);
-            setSelection({ start: { row: newRow, col: currentCol }, end: { row: newRow, col: currentCol } });
-        } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            const newCol = Math.max(0, currentCol - 1);
-            setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            const newCol = Math.min(colCount - 1, currentCol + 1);
-            setSelection({ start: { row: currentRow, col: newCol }, end: { row: currentRow, col: newCol } });
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            startEditing(currentRow, currentCol);
-        } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            // Direct input
-            startEditing(currentRow, currentCol, e.key);
-        } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            strategy();
+            return true;
+        }
+
+        return false;
+    };
+
+    // Keyboard & Paste Handlers
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (editingCell || !selection) return; // 卫语句：正在编辑或没有选区时直接返回
+
+        const { start } = selection;
+        
+        // 1. 尝试执行方向键和回车键策略
+        if (executeKeyboardStrategy(e, start.row, start.col)) return;
+
+        // 2. 复制操作 (Ctrl/Cmd + C)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
             e.preventDefault();
             handleCopy();
+            return;
+        }
+
+        // 3. 直接输入 (单字符且无修饰键)
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            startEditing(start.row, start.col, e.key);
         }
     };
 
     const handleCopy = () => {
-        if (!selection) return;
+        if (!selection) return; // 卫语句：防止无选区时复制
         const r1 = Math.min(selection.start.row, selection.end.row);
         const r2 = Math.max(selection.start.row, selection.end.row);
         const c1 = Math.min(selection.start.col, selection.end.col);
@@ -254,10 +298,15 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
-        if (!selection || !onDataChange) return;
+        if (!selection || !onDataChange) return; // 卫语句：无选区或无回调时返回
+        
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
+        if (!text) return; // 卫语句：无粘贴内容时返回
+
         const rows = text.split(/\r\n|\n|\r/).filter(row => row.length > 0);
+        if (rows.length === 0) return; // 卫语句：无有效行时返回
+
         const startRow = Math.min(selection.start.row, selection.end.row);
         const startCol = Math.min(selection.start.col, selection.end.col);
         const newData = [...finalData] as DataSource;
@@ -268,29 +317,30 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
         rows.forEach((rowStr, rIdx) => {
             const targetRowIdx = startRow + rIdx;
-            if (targetRowIdx >= sortedData.length) return;
+            if (targetRowIdx >= sortedData.length) return; // 卫语句：越界跳过
 
             maxRowIdx = Math.max(maxRowIdx, targetRowIdx);
 
             const cells = rowStr.split('\t');
             const record = sortedData[targetRowIdx];
             const originalIndex = finalData.indexOf(record);
-            if (originalIndex === -1) return;
+            if (originalIndex === -1) return; // 卫语句：找不到原数据索引跳过
 
             const newRecord = { ...finalData[originalIndex] as object };
 
             cells.forEach((cellStr, cIdx) => {
                 const targetColIdx = startCol + cIdx;
-                if (targetColIdx >= columns.length) return;
+                if (targetColIdx >= columns.length) return; // 卫语句：越界跳过
 
                 maxColIdx = Math.max(maxColIdx, targetColIdx);
 
                 const column = columns[targetColIdx];
-                if (column.editable !== false) {
-                    (newRecord as Record<string, unknown>)[column.dataIndex as string] = cellStr;
-                    changed = true;
-                }
+                if (column.editable === false) return; // 卫语句：不可编辑跳过
+
+                (newRecord as Record<string, unknown>)[column.dataIndex as string] = cellStr;
+                changed = true;
             });
+            
             newData[originalIndex] = newRecord as DataSource[number];
         });
 
@@ -304,8 +354,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         });
         tableRef.current?.focus();
     };
-
-    
 
     return (
         <div
@@ -472,24 +520,14 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                                 height: '100%',
                                                 zIndex: isActive ? 4 : (isSelected ? 3 : (isFixed ? 2 : 1)),
                                                 backgroundColor: isSelected ? (isActive ? '#ffffff' : 'rgba(24, 144, 255, 0.1)') : '#ffffff',
-                                                // 统一使用 border 绘制基础网格
                                                 borderBottom: '1px solid #e8e8e8',
                                                 borderRight: '1px solid #e8e8e8',
-                                                // 使用 box-shadow 模拟边框
-                                                // 注意：为了实现类似 Excel 的外围边框，我们需要在四周分别绘制内阴影
-                                                // 这里通过调整 inset 大小确保边缘可见
                                                 boxShadow: [
-                                                    // 选中区域边界高亮 (仅当 isSelected 时才渲染外边框，取消 !isActive 限制，让包含 active 的边缘也能渲染选中边框)
                                                     (isSelected && selectionBounds?.top === rowIndex) ? 'inset 0 2px 0 0 #1890ff' : 'none',
                                                     (isSelected && selectionBounds?.bottom === rowIndex) ? 'inset 0 -2px 0 0 #1890ff' : 'none',
                                                     (isSelected && selectionBounds?.left === colIndex) ? 'inset 2px 0 0 0 #1890ff' : 'none',
                                                     (isSelected && selectionBounds?.right === colIndex) ? 'inset -2px 0 0 0 #1890ff' : 'none',
-                                                    // active 单元格的内边框 (如果它也在边缘，会被上面的 2px 覆盖或叠加，这里保持为 1px 以示区别，或者不加)
-                                                    // 实际上 Excel 中 active 单元格没有单独的蓝框，除非它不是多选区。
-                                                    // 但为了明确当前光标，我们给它一个稍弱的内阴影，或者依赖 backgroundColor: #fff 来区分
-                                                    // 修正：如果只是单个单元格选中，它应该有 2px 边框；如果是多选区，active 单元格不需要四周的边框，只需要背景色为白即可
                                                     (isActive && (!selectionBounds || (selectionBounds.top === selectionBounds.bottom && selectionBounds.left === selectionBounds.right))) ? 'inset 0 0 0 2px #1890ff' : 'none',
-                                                    // 固定列阴影
                                                     offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : 'none',
                                                     offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'
                                                 ].filter(s => s !== 'none').join(', ') || 'none',
@@ -553,8 +591,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             <div className={styles['ux-table-bottom-bar']}>
                 {/* 左侧：标签页 (暂作示例) */}
                 <div className={styles['ux-table-tabs']}>
-                    {/* <div className={`${styles['ux-table-tab']} ${styles['active']}`}>Sheet1</div> */}
-                    {/* <div className={styles['ux-table-tab']}>+</div> */}
                 </div>
 
                 {/* 右侧：同步横向滚动条 */}
