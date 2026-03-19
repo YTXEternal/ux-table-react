@@ -2,25 +2,25 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: "UX Table React",
-  description: "A powerful React table component",
+  description: "强大的 React 表格组件",
   base: '/ux-table-react/',
   themeConfig: {
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/' },
-      { text: 'Components', link: '/components/ux-table' }
+      { text: '首页', link: '/' },
+      { text: '指南', link: '/guide/' },
+      { text: '组件', link: '/components/ux-table' }
     ],
 
     sidebar: [
       {
-        text: 'Guide',
+        text: '指南',
         items: [
-          { text: 'Introduction', link: '/guide/' },
-          { text: 'Getting Started', link: '/guide/getting-started' },
+          { text: '简介', link: '/guide/' },
+          { text: '快速开始', link: '/guide/getting-started' },
         ]
       },
       {
-        text: 'Components',
+        text: '组件',
         items: [
           { text: 'UxTable', link: '/components/ux-table' }
         ]

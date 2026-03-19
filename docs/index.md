@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: 查看组件
-      link: /components/button
+      link: /components/ux-table
 
 features:
   - title: ⚡️ 极致性能
