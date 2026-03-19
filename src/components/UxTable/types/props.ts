@@ -83,4 +83,8 @@ export interface UxTableProps<DataSource extends unknown[]> {
     rows: number;
     cols: number;
   };
+  /**
+   * 是否显示行号，默认为 true
+   */
+  lineShow?: boolean;
 }

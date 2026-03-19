@@ -120,12 +120,27 @@ const fillGridData = <DataSource extends unknown[]>(
  * @returns {React.ReactElement}
  */
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
-    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref } = props;
+    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref, lineShow = true } = props;
     const tableRef = useRef<HTMLDivElement>(null);
 
     // 补齐 data 和 columns
     const { finalColumns, finalData } = React.useMemo(() => {
         let columns = [...propColumns];
+        
+        // 如果开启 lineShow，在最前面插入行号列
+        if (lineShow) {
+            columns.unshift({
+                title: '',
+                dataIndex: '_line_number_' as keyof DataSource[number],
+                key: '_line_number_',
+                width: 50,
+                fixed: 'left',
+                editable: false,
+                resizable: false,
+                render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#bfbfbf', userSelect: 'none', width: '100%' }}>{index + 1}</div>
+            } as unknown as UxTableColumn<DataSource[number]>);
+        }
+
         let targetRows = propData.length;
 
         if (gridConfig) {
@@ -136,7 +151,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const data = fillGridData(propData, columns, targetRows, rowKey);
 
         return { finalColumns: columns, finalData: data };
-    }, [propColumns, propData, gridConfig, rowKey]);
+    }, [propColumns, propData, gridConfig, rowKey, lineShow]);
 
     // Hooks
     const { columns, handleResizeMouseDown } = useResizing(finalColumns);
@@ -376,12 +391,22 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             const rowData = [];
             const record = sortedData[i] as Record<string, unknown>;
             for (let j = c1; j <= c2; j++) {
+                // 跳过行号列
+                if (columns[j].key === '_line_number_') {
+                    continue;
+                }
                 const val = record[columns[j].dataIndex as string];
                 rowData.push(val ?? '');
             }
-            rows.push(rowData.join('\t'));
+            // 如果只有行号列被选中，可能会产生空行，这里过滤掉完全没有有效数据的行
+            if (rowData.length > 0) {
+                rows.push(rowData.join('\t'));
+            }
         }
-        copyToClipboard(rows.join('\n'));
+        
+        if (rows.length > 0) {
+            copyToClipboard(rows.join('\n'));
+        }
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
@@ -610,9 +635,25 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                         <div
                                             key={colKey}
                                             data-testid={`ux-table-cell-${rowIndex}-${colIndex}`}
-                                            onMouseDown={(e) => handleCellMouseDown(e, rowIndex, colIndex)}
-                                            onMouseEnter={() => handleCellMouseEnter(rowIndex, colIndex)}
-                                            onDoubleClick={() => startEditing(rowIndex, colIndex)}
+                                            onMouseDown={(e) => {
+                                                if (column.key === '_line_number_') {
+                                                    handleCellMouseDown(e, rowIndex, colIndex, columns.length, true);
+                                                } else {
+                                                    handleCellMouseDown(e, rowIndex, colIndex, columns.length, false);
+                                                }
+                                            }}
+                                            onMouseEnter={() => {
+                                                if (column.key === '_line_number_') {
+                                                    handleCellMouseEnter(rowIndex, colIndex, columns.length, true);
+                                                } else {
+                                                    handleCellMouseEnter(rowIndex, colIndex, columns.length, false);
+                                                }
+                                            }}
+                                            onDoubleClick={() => {
+                                                if (column.editable !== false) {
+                                                    startEditing(rowIndex, colIndex);
+                                                }
+                                            }}
                                             style={{
                                                 position: isFixed ? 'sticky' : 'absolute',
                                                 left: isFixed === 'left' ? offset?.left : undefined,
@@ -633,7 +674,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                                     offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : 'none',
                                                     offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'
                                                 ].filter(s => s !== 'none').join(', ') || 'none',
-                                                padding: isEditing ? 0 : '8px 16px',
+                                                padding: isEditing || column.key === '_line_number_' ? 0 : '8px 16px',
                                                 boxSizing: 'border-box',
                                                 overflow: isEditing ? 'visible' : 'hidden',
                                                 textOverflow: 'ellipsis',
@@ -697,9 +738,9 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                                     }}
                                                 />
                                             ) : (
-                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'flex', justifyContent: column.key === '_line_number_' ? 'center' : 'flex-start' }}>
                                                     {column.render ? column.render(value, record, rowIndex) : (value as React.ReactNode)}
-                                                </span>
+                                                </div>
                                             )}
                                         </div>
                                     );

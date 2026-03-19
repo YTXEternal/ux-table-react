@@ -15,23 +15,39 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>) =
         return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
     }, []);
 
-    const handleCellMouseDown = (e: React.MouseEvent, rowIndex: number, colIndex: number) => {
+    const handleCellMouseDown = (e: React.MouseEvent, rowIndex: number, colIndex: number, colCount: number, isLineNumberCol: boolean = false) => {
         if (e.button !== 0) return; // Only left click
         setIsSelecting(true);
-        setSelection({
-            start: { row: rowIndex, col: colIndex },
-            end: { row: rowIndex, col: colIndex }
-        });
+        
+        if (isLineNumberCol) {
+            setSelection({
+                start: { row: rowIndex, col: 0 },
+                end: { row: rowIndex, col: Math.max(0, colCount - 1) }
+            });
+        } else {
+            setSelection({
+                start: { row: rowIndex, col: colIndex },
+                end: { row: rowIndex, col: colIndex }
+            });
+        }
+        
         // Focus table for keyboard events
         tableRef.current?.focus();
     };
 
-    const handleCellMouseEnter = (rowIndex: number, colIndex: number) => {
+    const handleCellMouseEnter = (rowIndex: number, colIndex: number, colCount: number, isLineNumberCol: boolean = false) => {
         if (isSelecting && selection) {
-            setSelection({
-                ...selection,
-                end: { row: rowIndex, col: colIndex }
-            });
+            if (isLineNumberCol) {
+                setSelection({
+                    ...selection,
+                    end: { row: rowIndex, col: Math.max(0, colCount - 1) }
+                });
+            } else {
+                setSelection({
+                    ...selection,
+                    end: { row: rowIndex, col: colIndex }
+                });
+            }
         }
     };
 

@@ -17,7 +17,7 @@ const generateColumns = (cols: number): UxTableColumn<DataType>[] => {
     dataIndex: 'col_0',
     key: 'col_0',
     width: 150,
-    fixed: 'left',
+    // fixed: 'left',
     editable: true,
     sorter: true
   });
@@ -82,6 +82,7 @@ function App() {
           onDataChange={onDataChange}
           gridConfig={{ rows: 20, cols: 20 }}
           style={{ height: '100%' }}
+          lineShow={true}
         />
       </div>
     </div>
