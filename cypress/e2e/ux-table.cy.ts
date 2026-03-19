@@ -9,18 +9,21 @@ describe('UxTable 组件', () => {
     it('应该正确渲染表头', () => {
       // 检查前几个表头内容（基于 App.tsx 的 mock 数据）
       cy.get('[data-testid="ux-table-header-cell-0"]').should('contain', '固定列');
-      cy.get('[data-testid="ux-table-header-cell-1"]').should('contain', '列 1');
-      cy.get('[data-testid="ux-table-header-cell-2"]').should('contain', '列 2');
+      cy.get('[data-testid="ux-table-header-cell-1"]').should('contain', '数字列');
+      cy.get('[data-testid="ux-table-header-cell-2"]').should('contain', '列 1');
     });
 
     it('应该正确渲染数据行', () => {
       // 检查第一行的内容
       cy.get('[data-testid="ux-table-cell-0-0"]').should('contain', '数据 0-0');
-      cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', '数据 0-1');
+      // 第0行的 num_col 是 null，所以这里可能是空的
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('contain', '数据 0-1');
       
       // 检查第二行的内容
       cy.get('[data-testid="ux-table-cell-1-0"]').should('contain', '数据 1-0');
-      cy.get('[data-testid="ux-table-cell-1-1"]').should('contain', '数据 1-1');
+      // 第1行的 num_col 是 (6-1)*10 = 50
+      cy.get('[data-testid="ux-table-cell-1-1"]').should('contain', '50');
+      cy.get('[data-testid="ux-table-cell-1-2"]').should('contain', '数据 1-1');
     });
 
     it('应该正确处理固定列样式', () => {
