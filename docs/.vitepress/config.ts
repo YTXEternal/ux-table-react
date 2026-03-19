@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "UX Table React",
   description: "A powerful React table component",
+  base: '/ux-table-react/',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
