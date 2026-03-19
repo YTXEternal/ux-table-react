@@ -131,6 +131,42 @@ describe('UxTable 组件', () => {
     });
   });
 
+  describe('复制蚂蚁线动画测试', () => {
+    it('复制单元格后应该显示蚂蚁线动画，并在操作后消失', () => {
+      // 1. 选中单元格
+      cy.get('[data-testid="ux-table-cell-0-0"]').click({ force: true });
+      
+      // 2. 模拟按下 Ctrl+C
+      cy.get('body').type('{ctrl}c');
+
+      // 3. 验证蚂蚁线元素是否存在
+      // 检查当前单元格内部是否包含具有蚂蚁线类名的 div 元素
+      cy.get('[data-testid="ux-table-cell-0-0"]')
+        .find('div[class*="marching-ants"]')
+        .should('have.length', 4); // 上下左右四个边
+
+      // 4. 按下 Escape 键，蚂蚁线应该消失
+      // 需要在能触发键盘事件的元素上按 Esc，通常是表格容器，但这里直接使用 body 可能不行
+      // 修改为使用真实元素的类名或者直接在 body 上发 keydown 事件
+      cy.get('[class*="ux-table-main"]').type('{esc}', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-0"]')
+        .find('div[class*="marching-ants"]')
+        .should('not.exist');
+
+      // 5. 再次复制，并测试双击进入编辑模式时蚂蚁线是否消失
+      cy.get('[data-testid="ux-table-cell-0-0"]').click({ force: true });
+      cy.get('body').type('{ctrl}c');
+      cy.get('[data-testid="ux-table-cell-0-0"]')
+        .find('div[class*="marching-ants"]')
+        .should('have.length', 4);
+
+      cy.get('[data-testid="ux-table-cell-0-0"]').dblclick({ force: true });
+      cy.get('[data-testid="ux-table-cell-0-0"]')
+        .find('div[class*="marching-ants"]')
+        .should('not.exist');
+    });
+  });
+
   describe.skip('列宽调整测试', () => {
     it('拖拽调整手柄应该改变列宽', () => {
       // 获取第一列的初始宽度
