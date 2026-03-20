@@ -1,4 +1,4 @@
-import { processCopy, processPasteParse } from './workerLogic';
+import { processCopy, processPasteParse, processPaste } from './workerLogic';
 
 self.onmessage = (e: MessageEvent) => {
     const { id, payload } = e.data;
@@ -10,6 +10,16 @@ self.onmessage = (e: MessageEvent) => {
             self.postMessage({ id, result });
         } else if (type === 'PASTE_PARSE') {
             const result = processPasteParse(data.text);
+            self.postMessage({ id, result });
+        } else if (type === 'PASTE') {
+            const result = processPaste(
+                data.text,
+                data.finalData,
+                data.sortedData,
+                data.columns,
+                data.startRow,
+                data.startCol
+            );
             self.postMessage({ id, result });
         } else {
             self.postMessage({ id, error: 'Unknown task type' });

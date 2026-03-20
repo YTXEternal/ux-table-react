@@ -7,7 +7,7 @@ import { useEditing } from './hooks/useEditing';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useClipboard } from './hooks/useClipboard';
 import { useWebWorker } from './hooks/useWebWorker';
-import { processCopy, processPasteParse } from './workers/workerLogic';
+import { processCopy, processPasteParse, processPaste } from './workers/workerLogic';
 import { createTableWorker } from './workers/createWorker';
 import { useVirtualizer, defaultRangeExtractor } from '@tanstack/react-virtual';
 import styles from './styles.module.css';
@@ -188,13 +188,23 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // 初始化 Web Worker
     type WorkerPayload = 
         | { type: 'COPY'; data: { selectedData: Record<string, unknown>[]; columns: { key?: React.Key; dataIndex: string | number | symbol }[] } }
-        | { type: 'PASTE_PARSE'; data: { text: string } };
+        | { type: 'PASTE_PARSE'; data: { text: string } }
+        | { type: 'PASTE'; data: { text: string; finalData: Record<string, unknown>[]; sortedData: Record<string, unknown>[]; columns: { editable?: boolean; dataIndex: string | number | symbol }[]; startRow: number; startCol: number } };
 
     const workerFallback = React.useCallback(async (payload: WorkerPayload) => {
         if (payload.type === 'COPY') {
             return processCopy(payload.data.selectedData, payload.data.columns as { key?: string | number | symbol; dataIndex: string | number | symbol }[]);
         } else if (payload.type === 'PASTE_PARSE') {
             return processPasteParse(payload.data.text);
+        } else if (payload.type === 'PASTE') {
+            return processPaste(
+                payload.data.text,
+                payload.data.finalData,
+                payload.data.sortedData,
+                payload.data.columns as { editable?: boolean; dataIndex: string | number | symbol }[],
+                payload.data.startRow,
+                payload.data.startCol
+            );
         }
         return null;
     }, []);
@@ -203,7 +213,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         return createTableWorker();
     }, []);
 
-    const { postMessage: postWorkerMessage } = useWebWorker<WorkerPayload, string | string[][] | null>(workerScript, workerFallback, isWorker);
+    const { postMessage: postWorkerMessage } = useWebWorker<WorkerPayload, string | string[][] | { newData: Record<string, unknown>[]; maxRowIdx: number; maxColIdx: number } | null>(workerScript, workerFallback, isWorker);
 
     const [copiedBounds, setCopiedBounds] = React.useState<{top: number, bottom: number, left: number, right: number} | null>(null);
 
@@ -459,58 +469,34 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         if (!text) return; // 卫语句：无粘贴内容时返回
 
         try {
-            const parsedRows = await postWorkerMessage({
-                type: 'PASTE_PARSE',
-                data: { text }
-            });
-
-            if (!parsedRows || !Array.isArray(parsedRows) || parsedRows.length === 0) return; // 卫语句：无有效行时返回
-
             const startRow = Math.min(selection.start.row, selection.end.row);
             const startCol = Math.min(selection.start.col, selection.end.col);
-            const newData = [...finalData] as DataSource;
-            let changed = false;
 
-            let maxRowIdx = startRow;
-            let maxColIdx = startCol;
+            const sanitizedColumns = columns.map(col => ({
+                editable: col.editable,
+                dataIndex: col.dataIndex
+            }));
 
-            parsedRows.forEach((cells: string[], rIdx: number) => {
-                const targetRowIdx = startRow + rIdx;
-                if (targetRowIdx >= sortedData.length) return; // 卫语句：越界跳过
+            const result = await postWorkerMessage({
+                type: 'PASTE',
+                data: {
+                    text,
+                    finalData: finalData as Record<string, unknown>[],
+                    sortedData: sortedData as Record<string, unknown>[],
+                    columns: sanitizedColumns,
+                    startRow,
+                    startCol
+                }
+            }) as { newData: Record<string, unknown>[]; maxRowIdx: number; maxColIdx: number } | null;
 
-                maxRowIdx = Math.max(maxRowIdx, targetRowIdx);
-
-                const record = sortedData[targetRowIdx];
-                const originalIndex = finalData.indexOf(record);
-                if (originalIndex === -1) return; // 卫语句：找不到原数据索引跳过
-
-                const newRecord = { ...finalData[originalIndex] as object };
-
-                cells.forEach((cellStr: string, cIdx: number) => {
-                    const targetColIdx = startCol + cIdx;
-                    if (targetColIdx >= columns.length) return; // 卫语句：越界跳过
-
-                    maxColIdx = Math.max(maxColIdx, targetColIdx);
-
-                    const column = columns[targetColIdx];
-                    if (column.editable === false) return; // 卫语句：不可编辑跳过
-
-                    (newRecord as Record<string, unknown>)[column.dataIndex as string] = cellStr;
-                    changed = true;
+            if (result && result.newData) {
+                onDataChange(result.newData as DataSource);
+                setSelection({
+                    start: { row: startRow, col: startCol },
+                    end: { row: result.maxRowIdx, col: result.maxColIdx }
                 });
-                
-                newData[originalIndex] = newRecord as DataSource[number];
-            });
-
-            if (changed) {
-                onDataChange(newData);
+                tableRef.current?.focus();
             }
-
-            setSelection({
-                start: { row: startRow, col: startCol },
-                end: { row: maxRowIdx, col: maxColIdx }
-            });
-            tableRef.current?.focus();
         } catch (error) {
             console.error('Paste worker failed:', error);
         }
