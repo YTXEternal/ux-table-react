@@ -35,6 +35,7 @@ export default () => <UxTable columns={columns} data={data} rowKey="key" />
 | style | 样式 | `CSSProperties` | - |
 | onDataChange | 数据发生变化时的回调 | `(newData: any[]) => void` | - |
 | gridConfig | 网格配置，用于补齐空单元格 | `{ rows: number; cols: number; }` | - |
+| infinite | 无限滚动配置，当快滚动到底部时扩充行列 | `{ row: number; col: number; gap: number }` | - |
 
 ### UxTableColumn
 

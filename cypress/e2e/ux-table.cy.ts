@@ -39,6 +39,33 @@ describe('UxTable 组件', () => {
     });
   });
 
+  describe('无限滚动测试', () => {
+    it('当滚动到底部时应该扩充行和列', () => {
+      // 获取表格主体容器
+      cy.get('[data-testid="ux-table-header-row"]').parent().parent().as('tableMain');
+      
+      // 初始渲染应该只有部分行（根据虚拟列表和初始配置）
+      // App.tsx 中的 gridConfig 是 20x20，infinite 是 {row:10, col:5, gap:5}
+      // 我们先检查是否能找到第 19 行（初始 gridConfig 的最后一行），应该找不到因为被虚拟列表隐藏
+      // 然后我们滚动到底部，应该能触发扩充
+      
+      cy.get('@tableMain').scrollTo('bottom');
+      // 等待扩充和虚拟列表更新
+      cy.wait(500);
+      
+      // 滚动到底部后，应该扩充了 10 行，所以总行数至少是 30，索引为 29 的行应该被渲染出来
+      cy.get('[data-testid="ux-table-row-29"]').should('exist');
+      
+      // 测试横向滚动
+      // 横向滚动应该使用底部的滚动条
+      cy.get('[class*="ux-table-scrollbar-x"]').scrollTo('right');
+      cy.wait(500);
+      
+      // 初始列是 20，扩充了 5 列，所以索引 24 的列应该存在
+      cy.get('[data-testid="ux-table-header-cell-24"]').should('exist');
+    });
+  });
+
   describe('行高调整测试', () => {
     it('应该能够通过拖拽调整行高', () => {
       // 获取第0行的初始高度

@@ -84,6 +84,16 @@ export interface UxTableProps<DataSource extends unknown[]> {
     cols: number;
   };
   /**
+   * 无限滚动配置，在x轴和y轴快要滚动到尽头时（间隔gap列/行的距离），根据row和col扩充表格的行列
+   */
+  infinite?: { 
+    row: number; 
+    col: number; 
+    gap: number;
+    /** 格式化扩充列的表头文本，默认使用当前列索引 + 1 */
+    headerText?: (index: number) => string;
+  };
+  /**
    * 是否显示行号，默认为 true
    */
   lineShow?: boolean;

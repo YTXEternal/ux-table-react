@@ -11,21 +11,6 @@ import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
 
 /**
- * 根据索引生成类似 Excel 的列名 A, B, C... Z, AA...
- * @param {number} index 列索引
- * @returns {string} 列名
- */
-const getExcelColumnName = (index: number): string => {
-    let temp = index;
-    let colName = '';
-    while (temp >= 0) {
-        colName = String.fromCharCode((temp % 26) + 65) + colName;
-        temp = Math.floor(temp / 26) - 1;
-    }
-    return colName;
-};
-
-/**
  * 同步滚动条位置，复用滚动逻辑
  * @param {HTMLElement | null} source 源滚动容器
  * @param {HTMLElement | null} target 目标滚动容器
@@ -52,18 +37,22 @@ const syncScroll = (source: HTMLElement | null, target: HTMLElement | null): voi
  * @template {unknown[]} DataSource
  * @param {UxTableColumn<DataSource[number]>[]} columns 原始列配置
  * @param {number} targetCols 目标列数
+ * @param {((index: number) => string) | undefined} headerText 标题文本格式化函数
  * @returns {UxTableColumn<DataSource[number]>[]} 格式化后的列配置
  */
 const fillGridColumns = <DataSource extends unknown[]>(
     columns: UxTableColumn<DataSource[number]>[],
-    targetCols: number
+    targetCols: number,
+    headerText?: (index: number) => string
 ): UxTableColumn<DataSource[number]>[] => {
     if (columns.length >= targetCols) return columns;
 
     const newColumns = [...columns];
     for (let i = columns.length; i < targetCols; i++) {
+        // 如果有行号列，那么实际显示的数据列索引可能需要偏移（取决于外部传入的 headerText 怎么定义，这里把原始列的长度传递给它）
+        // 为了方便用户，传入的 index 就是当前的列总数（也就是接下来要生成的列的索引，包含可能已经加在最前面的行号列）
         newColumns.push({
-            title: getExcelColumnName(i),
+            title: headerText ? headerText(i) : String(i + 1),
             dataIndex: `_grid_col_${i}` as keyof DataSource[number],
             key: `_grid_col_${i}`,
             width: 100,
@@ -120,8 +109,14 @@ const fillGridData = <DataSource extends unknown[]>(
  * @returns {React.ReactElement}
  */
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
-    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref, lineShow = true } = props;
+    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref, lineShow = true, infinite } = props;
     const tableRef = useRef<HTMLDivElement>(null);
+
+    const [expandedRows, setExpandedRows] = React.useState(0);
+    const [expandedCols, setExpandedCols] = React.useState(0);
+
+    // 当传入的 data 或 columns 发生变化时，如果需要重置扩充状态，可以在这里处理。
+    // 但通常我们保持当前的扩充状态，或者在外部数据变大时自动适应。
 
     // 补齐 data 和 columns
     const { finalColumns, finalData } = React.useMemo(() => {
@@ -142,16 +137,26 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         }
 
         let targetRows = propData.length;
+        let targetCols = columns.length;
 
         if (gridConfig) {
-            columns = fillGridColumns(columns, gridConfig.cols);
+            targetCols = Math.max(targetCols, gridConfig.cols);
             targetRows = Math.max(propData.length, gridConfig.rows);
+        }
+
+        if (infinite) {
+            targetRows += expandedRows;
+            targetCols += expandedCols;
+        }
+
+        if (targetCols > columns.length) {
+            columns = fillGridColumns(columns, targetCols, infinite?.headerText);
         }
 
         const data = fillGridData(propData, columns, targetRows, rowKey);
 
         return { finalColumns: columns, finalData: data };
-    }, [propColumns, propData, gridConfig, rowKey, lineShow]);
+    }, [propColumns, propData, gridConfig, rowKey, lineShow, infinite, expandedRows, expandedCols]);
 
     // Hooks
     const { columns, handleResizeMouseDown } = useResizing(finalColumns);
@@ -254,6 +259,24 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     React.useEffect(() => {
         colVirtualizer.measure();
     }, [columns, colVirtualizer]);
+
+    // 无限滚动逻辑
+    const rowItems = rowVirtualizer.getVirtualItems();
+    const colItems = colVirtualizer.getVirtualItems();
+    const lastRowIndex = rowItems.length > 0 ? rowItems[rowItems.length - 1].index : 0;
+    const lastColIndex = colItems.length > 0 ? colItems[colItems.length - 1].index : 0;
+
+    React.useEffect(() => {
+        if (!infinite) return; // 卫语句：没有配置 infinite 时直接返回
+
+        if (lastRowIndex + infinite.gap >= sortedData.length - 1) {
+            setExpandedRows(prev => prev + infinite.row);
+        }
+
+        if (lastColIndex + infinite.gap >= columns.length - 1) {
+            setExpandedCols(prev => prev + infinite.col);
+        }
+    }, [lastRowIndex, lastColIndex, infinite, sortedData.length, columns.length]);
 
     // 滚动同步复用
     const handleMainScroll = () => syncScroll(parentRef.current, scrollbarRef.current);

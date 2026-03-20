@@ -81,6 +81,7 @@ function App() {
           rowKey="key"
           onDataChange={onDataChange}
           gridConfig={{ rows: 20, cols: 20 }}
+          infinite={{ row: 10, col: 5, gap: 5 }}
           style={{ height: '100%' }}
           lineShow={true}
         />

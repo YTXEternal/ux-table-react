@@ -9,12 +9,10 @@ jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: jest.fn(({ count, horizontal }) => {
     return {
       getVirtualItems: () => {
-        // Since we mock all items based on count, it handles dynamic length (like adding line number col)
-        // If horizontal is true, count might be 3 (lineShow + 2 columns)
+        // Limit to 5 items to avoid infinite loops in infinite scrolling tests
+        const renderCount = Math.min(count, 5);
         const size = horizontal ? 100 : 40;
-        // In our mock, if `horizontal` is true, we should use the `count` provided which comes from `columns.length`.
-        // However, `columns` array in the component is cloned and modified. The mock gets the correct count!
-        return Array.from({ length: count }).map((_, index) => ({
+        return Array.from({ length: renderCount }).map((_, index) => ({
           index,
           start: index * size,
           size,
@@ -94,8 +92,8 @@ describe('UxTable Component', () => {
     render(<UxTable columns={columns} data={testData} rowKey="key" gridConfig={gridConfig} lineShow={false} />);
     
     // The test mock virtualizer renders all items
-    // If target cols is 3, columns length becomes 3 (A, B, C)
-    expect(screen.getByText('C')).toBeInTheDocument();
+    // If target cols is 3, columns length becomes 3 (1, 2, 3)
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('selects all cells when Ctrl+A is pressed', async () => {
@@ -177,6 +175,37 @@ describe('UxTable Component', () => {
     // Clicking sort icon should sort (Ascending: Jane Doe first)
     await user.click(sortIcon);
     expect(screen.getByTestId('ux-table-cell-0-0')).toHaveTextContent('Jane Doe');
+  });
+
+  it('expands rows and columns when infinite prop is provided', () => {
+    const infinite = { row: 5, col: 5, gap: 2 };
+    
+    // We start with 2 data rows. Target rows = 2.
+    // getVirtualItems renders up to 5 items.
+    // Render 1: count=2, lastRowIndex=1. 1 + 2 >= 1 -> expands by 5.
+    // Render 2: count=7, lastRowIndex=4. 4 + 2 >= 6 -> expands by 5.
+    // Render 3: count=12, lastRowIndex=4. 4 + 2 >= 11 -> stops expanding.
+    // Target columns: initial is 2 + lineShow = 3.
+    // Render 1: count=3, lastColIndex=2. 2 + 2 >= 2 -> expands by 5.
+    // Render 2: count=8, lastColIndex=4. 4 + 2 >= 7 -> stops expanding.
+    
+    render(<UxTable columns={columns} data={data} rowKey="key" infinite={infinite} />);
+    
+    // Check if new columns are added (since count=8, but renderCount=5)
+    // The columns are named by index + 1 (e.g. '4', '5' because indices are 3, 4)
+    // Column indices: 0(lineShow), 1(Name), 2(Age), 3(4), 4(5)
+    expect(screen.getByTestId('ux-table-header-cell-3')).toHaveTextContent('4');
+    expect(screen.getByTestId('ux-table-header-cell-4')).toHaveTextContent('5');
+  });
+
+  it('formats column header text when infinite.headerText is provided', () => {
+    const infinite = { row: 5, col: 5, gap: 2, headerText: (index: number) => `Col ${index}` };
+    
+    render(<UxTable columns={columns} data={data} rowKey="key" infinite={infinite} />);
+    
+    // Column indices: 0(lineShow), 1(Name), 2(Age), 3(Col 3), 4(Col 4)
+    expect(screen.getByText('Col 3')).toBeInTheDocument();
+    expect(screen.getByText('Col 4')).toBeInTheDocument();
   });
 
   describe('Copy functionality with marching ants animation', () => {
