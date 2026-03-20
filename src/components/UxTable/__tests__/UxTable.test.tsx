@@ -292,6 +292,39 @@ describe('UxTable 组件', () => {
       cellElement = screen.getByTestId('ux-table-cell-0-1');
       expect(Array.from(cellElement.children).some(el => el.className.includes('marching-ants-top'))).toBe(false);
     });
+
+    it('beforeCopy 可以阻止复制，并且 afterCopy 可以在复制成功后被调用', async () => {
+      const user = userEvent.setup();
+      const beforeCopy = jest.fn().mockResolvedValue(false); // 第一次阻止
+      const afterCopy = jest.fn();
+      
+      const originalExecCommand = document.execCommand;
+      document.execCommand = jest.fn();
+
+      const { rerender } = render(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      
+      const cell00 = screen.getByTestId('ux-table-cell-0-0');
+      await user.click(cell00);
+      
+      // Copy
+      fireEvent.keyDown(cell00, { key: 'c', ctrlKey: true });
+      
+      await new Promise(resolve => setTimeout(resolve, 0)); // 等待异步
+      expect(beforeCopy).toHaveBeenCalledTimes(1);
+      expect(afterCopy).not.toHaveBeenCalled(); // 复制被阻止
+
+      // 修改 mock 允许复制
+      beforeCopy.mockResolvedValue(true);
+      rerender(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      
+      fireEvent.keyDown(cell00, { key: 'c', ctrlKey: true });
+      
+      await new Promise(resolve => setTimeout(resolve, 0)); // 等待异步
+      expect(beforeCopy).toHaveBeenCalledTimes(2);
+      expect(afterCopy).toHaveBeenCalledTimes(1); // 复制成功触发
+
+      document.execCommand = originalExecCommand;
+    });
   });
 
   describe('剪切功能', () => {
@@ -436,6 +469,71 @@ describe('UxTable 组件', () => {
       const calledData = onDataChange.mock.calls[0][0];
       expect(calledData[0].name).toBe('John Doe'); // unchanged
       expect(calledData[0].age).toBe('35'); // changed
+    });
+
+    it('beforePaste 可以阻止粘贴，并且 afterPaste 可以在粘贴成功后被调用', async () => {
+      const user = userEvent.setup();
+      const onDataChange = jest.fn();
+      const beforePaste = jest.fn().mockResolvedValue(false); // 第一次阻止
+      const afterPaste = jest.fn();
+
+      const { container, rerender } = render(
+        <UxTable 
+          columns={columns} 
+          data={data} 
+          rowKey="key" 
+          lineShow={false}
+          onDataChange={onDataChange} 
+          isWorker={false} 
+          beforePaste={beforePaste} 
+          afterPaste={afterPaste} 
+        />
+      );
+      
+      const cell00 = screen.getByTestId('ux-table-cell-0-0');
+      await user.click(cell00);
+
+      const tableMain = container.querySelector('.ux-table-main');
+      
+      const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(pasteEvent, 'clipboardData', {
+        value: { getData: jest.fn().mockReturnValue('New John\t35') }
+      });
+      
+      if (tableMain) {
+        fireEvent(tableMain, pasteEvent);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(beforePaste).toHaveBeenCalledTimes(1);
+      expect(onDataChange).not.toHaveBeenCalled(); // 粘贴被阻止
+      expect(afterPaste).not.toHaveBeenCalled(); // 粘贴被阻止
+
+      // 允许粘贴
+      beforePaste.mockResolvedValue(true);
+      rerender(
+        <UxTable 
+          columns={columns} 
+          data={data} 
+          rowKey="key" 
+          lineShow={false}
+          onDataChange={onDataChange} 
+          isWorker={false} 
+          beforePaste={beforePaste} 
+          afterPaste={afterPaste} 
+        />
+      );
+
+      if (tableMain) {
+        fireEvent(tableMain, pasteEvent);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(beforePaste).toHaveBeenCalledTimes(2);
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      expect(afterPaste).toHaveBeenCalledTimes(1);
     });
   });
 

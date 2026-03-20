@@ -7,5 +7,5 @@
     "package.json": "package-lock.json, pnpm-lock.yaml, yarn.lock",
     "vite.config.ts": "vite.config.*, vitest.config.*, cypress.config.*, jest.config.*, uno.config.*, commitlint.config.*, eslint.config.*",
     "tsconfig.json": "tsconfig.*.json"
-  }
+  },
 }

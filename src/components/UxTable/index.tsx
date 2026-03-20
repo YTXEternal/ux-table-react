@@ -112,7 +112,22 @@ const fillGridData = <DataSource extends unknown[]>(
  * @returns {React.ReactElement}
  */
 export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSource>) => {
-    const { columns: propColumns, data: propData, rowKey, className, onDataChange, gridConfig, ref, lineShow = true, infinite, isWorker = true } = props;
+    const {
+        columns: propColumns,
+        data: propData,
+        rowKey,
+        className,
+        onDataChange,
+        gridConfig,
+        ref,
+        lineShow = true,
+        infinite,
+        isWorker = true,
+        beforeCopy,
+        afterCopy,
+        beforePaste,
+        afterPaste
+    } = props;
     const tableRef = useRef<HTMLDivElement>(null);
 
     const [expandedRows, setExpandedRows] = React.useState(0);
@@ -124,7 +139,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // 补齐 data 和 columns
     const { finalColumns, finalData } = React.useMemo(() => {
         let columns = [...propColumns];
-        
+
         // 如果开启 lineShow，在最前面插入行号列
         if (lineShow) {
             columns.unshift({
@@ -186,7 +201,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const { copyToClipboard } = useClipboard();
 
     // 初始化 Web Worker
-    type WorkerPayload = 
+    type WorkerPayload =
         | { type: 'COPY'; data: { selectedData: Record<string, unknown>[]; columns: { key?: React.Key; dataIndex: string | number | symbol }[] } }
         | { type: 'PASTE_PARSE'; data: { text: string } }
         | { type: 'PASTE'; data: { text: string; finalData: Record<string, unknown>[]; sortedData: Record<string, unknown>[]; columns: { editable?: boolean; dataIndex: string | number | symbol; key?: React.Key }[]; startRow: number; startCol: number; cutBounds?: { top: number; bottom: number; left: number; right: number } | null } }
@@ -235,8 +250,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     const { postMessage: postWorkerMessage } = useWebWorker<WorkerPayload, string | string[][] | { newData: Record<string, unknown>[]; maxRowIdx?: number; maxColIdx?: number } | null>(workerScript, workerFallback, isWorker);
 
-    const [copiedBounds, setCopiedBounds] = React.useState<{top: number, bottom: number, left: number, right: number} | null>(null);
-    const [cutBounds, setCutBounds] = React.useState<{top: number, bottom: number, left: number, right: number} | null>(null);
+    const [copiedBounds, setCopiedBounds] = React.useState<{ top: number, bottom: number, left: number, right: number } | null>(null);
+    const [cutBounds, setCutBounds] = React.useState<{ top: number, bottom: number, left: number, right: number } | null>(null);
 
     // 行高管理
     const [rowHeights, setRowHeights] = React.useState<Record<number, number>>({});
@@ -365,7 +380,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const handleRowResizeMouseDown = (e: React.MouseEvent, rowIndex: number) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const startHeight = rowHeights[rowIndex] || CELL_HEIGHT;
         resizingRowRef.current = {
             index: rowIndex,
@@ -375,10 +390,10 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
             if (!resizingRowRef.current) return;
-            
+
             const deltaY = moveEvent.clientY - resizingRowRef.current.startY;
             const newHeight = Math.max(20, resizingRowRef.current.startHeight + deltaY); // 最小行高限制
-            
+
             setRowHeights(prev => ({
                 ...prev,
                 [rowIndex]: newHeight
@@ -454,7 +469,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         if (editingCell || !selection) return; // 卫语句：正在编辑或没有选区时直接返回
 
         const { start } = selection;
-        
+
         // 1. 尝试执行方向键和回车键策略
         if (executeKeyboardStrategy(e, start.row, start.col)) return;
 
@@ -508,11 +523,18 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
+        const selectedData = sortedData.slice(r1, r2 + 1) as DataSource[number][];
+        const selectedColumns = columns.slice(c1, c2 + 1);
+
+        if (beforeCopy) {
+            const allowCopy = await beforeCopy({ selectedData, columns: selectedColumns });
+            if (allowCopy === false) return; // 卫语句：外部阻止复制
+        }
+
         setCopiedBounds({ top: r1, bottom: r2, left: c1, right: c2 });
         setCutBounds(null); // 互斥
 
-        const selectedData = sortedData.slice(r1, r2 + 1) as Record<string, unknown>[];
-        const sanitizedColumns = columns.slice(c1, c2 + 1).map(col => ({
+        const sanitizedColumns = selectedColumns.map(col => ({
             key: col.key,
             dataIndex: col.dataIndex
         }));
@@ -520,10 +542,13 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         try {
             const text = await postWorkerMessage({
                 type: 'COPY',
-                data: { selectedData, columns: sanitizedColumns }
+                data: { selectedData: selectedData as Record<string, unknown>[], columns: sanitizedColumns }
             });
             if (typeof text === 'string' && text) {
                 copyToClipboard(text);
+                if (afterCopy) {
+                    afterCopy({ text, selectedData, columns: selectedColumns });
+                }
             }
         } catch (error) {
             console.error('Copy worker failed:', error);
@@ -610,10 +635,15 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const text = e.clipboardData.getData('text/plain');
         if (!text) return; // 卫语句：无粘贴内容时返回
 
-        try {
-            const startRow = Math.min(selection.start.row, selection.end.row);
-            const startCol = Math.min(selection.start.col, selection.end.col);
+        const startRow = Math.min(selection.start.row, selection.end.row);
+        const startCol = Math.min(selection.start.col, selection.end.col);
 
+        if (beforePaste) {
+            const allowPaste = await beforePaste({ text, startRow, startCol });
+            if (allowPaste === false) return; // 卫语句：外部阻止粘贴
+        }
+
+        try {
             const sanitizedColumns = columns.map(col => ({
                 key: col.key,
                 editable: col.editable,
@@ -640,8 +670,19 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     end: { row: result.maxRowIdx, col: result.maxColIdx }
                 });
                 tableRef.current?.focus();
+
+                if (afterPaste) {
+                    afterPaste({
+                        text,
+                        newData: result.newData as DataSource,
+                        startRow,
+                        startCol,
+                        maxRowIdx: result.maxRowIdx,
+                        maxColIdx: result.maxColIdx
+                    });
+                }
             }
-            
+
             // 无论粘贴是否成功，都清空 cutBounds 和 copiedBounds
             setCutBounds(null);
             setCopiedBounds(null);
@@ -693,7 +734,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     {column.title as React.ReactNode}
                 </span>
                 {column.sorter && (
-                    <div 
+                    <div
                         data-testid={`ux-table-sorter-${index}`}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -742,11 +783,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
         const value = record[column.dataIndex as string];
 
-        const isCopied = copiedBounds && 
-            rowIndex >= copiedBounds.top && rowIndex <= copiedBounds.bottom && 
+        const isCopied = copiedBounds &&
+            rowIndex >= copiedBounds.top && rowIndex <= copiedBounds.bottom &&
             colIndex >= copiedBounds.left && colIndex <= copiedBounds.right;
-        const isCut = cutBounds && 
-            rowIndex >= cutBounds.top && rowIndex <= cutBounds.bottom && 
+        const isCut = cutBounds &&
+            rowIndex >= cutBounds.top && rowIndex <= cutBounds.bottom &&
             colIndex >= cutBounds.left && colIndex <= cutBounds.right;
 
         const isAntsTop = (isCopied && rowIndex === copiedBounds.top) || (isCut && rowIndex === cutBounds.top);
@@ -807,7 +848,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 {isAntsBottom && <div className={styles['marching-ants-bottom']} />}
                 {isAntsLeft && <div className={styles['marching-ants-left']} />}
                 {isAntsRight && <div className={styles['marching-ants-right']} />}
-                
+
                 {colIndex === 0 && (
                     <div
                         onMouseDown={(e) => handleRowResizeMouseDown(e, rowIndex)}
@@ -900,7 +941,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 className={styles['ux-table-main']}
             >
                 <div style={{
-                    height: `${rowVirtualizer.getTotalSize() + (1* CELL_HEIGHT)}px`,
+                    height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
                     width: `${colVirtualizer.getTotalSize()}px`,
                     position: 'relative',
                 }}>

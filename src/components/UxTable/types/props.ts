@@ -101,4 +101,26 @@ export interface UxTableProps<DataSource extends unknown[]> {
    * 是否开启 Web Worker 进行耗时任务处理，默认为 true
    */
   isWorker?: boolean;
+  /**
+   * 复制前触发，返回 false 或 Promise<false> 可以阻止默认的复制行为
+   * @param params 包含被复制的数据和对应的列信息
+   * @returns 是否允许复制
+   */
+  beforeCopy?: (params: { selectedData: DataSource[number][]; columns: UxTableColumn<DataSource[number]>[] }) => boolean | void | Promise<boolean | void>;
+  /**
+   * 复制后触发
+   * @param params 包含复制的文本内容、被复制的数据和对应的列信息
+   */
+  afterCopy?: (params: { text: string; selectedData: DataSource[number][]; columns: UxTableColumn<DataSource[number]>[] }) => void;
+  /**
+   * 粘贴前触发，返回 false 或 Promise<false> 可以阻止默认的粘贴行为
+   * @param params 包含粘贴的文本内容以及粘贴起始的行列索引
+   * @returns 是否允许粘贴
+   */
+  beforePaste?: (params: { text: string; startRow: number; startCol: number }) => boolean | void | Promise<boolean | void>;
+  /**
+   * 粘贴后触发
+   * @param params 包含粘贴的文本内容、更新后的完整数据、以及粘贴区域的起始和最大行列索引
+   */
+  afterPaste?: (params: { text: string; newData: DataSource; startRow: number; startCol: number; maxRowIdx: number; maxColIdx: number }) => void;
 }
