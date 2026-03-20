@@ -4,6 +4,10 @@ import '@testing-library/jest-dom';
 import { UxTable } from '../index';
 import type { UxTableColumn } from '../types';
 
+jest.mock('../workers/createWorker', () => ({
+  createTableWorker: () => null // Mock out the worker creation to avoid import.meta.url errors
+}));
+
 // Mock @tanstack/react-virtual
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: jest.fn(({ count, horizontal }) => {

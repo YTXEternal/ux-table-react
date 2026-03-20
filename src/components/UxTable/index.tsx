@@ -6,6 +6,9 @@ import { useSelection } from './hooks/useSelection';
 import { useEditing } from './hooks/useEditing';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useClipboard } from './hooks/useClipboard';
+import { useWebWorker } from './hooks/useWebWorker';
+import { processCopy, processPasteParse } from './workers/workerLogic';
+import { createTableWorker } from './workers/createWorker';
 import { useVirtualizer, defaultRangeExtractor } from '@tanstack/react-virtual';
 import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
@@ -181,6 +184,26 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     } = useEditing(finalData, columns, sortedData, onDataChange);
     const fixedOffsets = useFixedColumns(columns);
     const { copyToClipboard } = useClipboard();
+
+    // 初始化 Web Worker
+    type WorkerPayload = 
+        | { type: 'COPY'; data: { selectedData: Record<string, unknown>[]; columns: { key?: React.Key; dataIndex: string | number | symbol }[] } }
+        | { type: 'PASTE_PARSE'; data: { text: string } };
+
+    const workerFallback = React.useCallback(async (payload: WorkerPayload) => {
+        if (payload.type === 'COPY') {
+            return processCopy(payload.data.selectedData, payload.data.columns as { key?: string | number | symbol; dataIndex: string | number | symbol }[]);
+        } else if (payload.type === 'PASTE_PARSE') {
+            return processPasteParse(payload.data.text);
+        }
+        return null;
+    }, []);
+
+    const workerScript = React.useCallback(() => {
+        return createTableWorker();
+    }, []);
+
+    const { postMessage: postWorkerMessage } = useWebWorker<WorkerPayload, string | string[][] | null>(workerScript, workerFallback);
 
     const [copiedBounds, setCopiedBounds] = React.useState<{top: number, bottom: number, left: number, right: number} | null>(null);
 
@@ -400,7 +423,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         }
     };
 
-    const handleCopy = () => {
+    const handleCopy = async () => {
         if (!selection) return; // 卫语句：防止无选区时复制
         const r1 = Math.min(selection.start.row, selection.end.row);
         const r2 = Math.max(selection.start.row, selection.end.row);
@@ -409,85 +432,88 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
         setCopiedBounds({ top: r1, bottom: r2, left: c1, right: c2 });
 
-        const rows = [];
-        for (let i = r1; i <= r2; i++) {
-            const rowData = [];
-            const record = sortedData[i] as Record<string, unknown>;
-            for (let j = c1; j <= c2; j++) {
-                // 跳过行号列
-                if (columns[j].key === '_line_number_') {
-                    continue;
-                }
-                const val = record[columns[j].dataIndex as string];
-                rowData.push(val ?? '');
+        const selectedData = sortedData.slice(r1, r2 + 1) as Record<string, unknown>[];
+        const sanitizedColumns = columns.slice(c1, c2 + 1).map(col => ({
+            key: col.key,
+            dataIndex: col.dataIndex
+        }));
+
+        try {
+            const text = await postWorkerMessage({
+                type: 'COPY',
+                data: { selectedData, columns: sanitizedColumns }
+            });
+            if (typeof text === 'string' && text) {
+                copyToClipboard(text);
             }
-            // 如果只有行号列被选中，可能会产生空行，这里过滤掉完全没有有效数据的行
-            if (rowData.length > 0) {
-                rows.push(rowData.join('\t'));
-            }
-        }
-        
-        if (rows.length > 0) {
-            copyToClipboard(rows.join('\n'));
+        } catch (error) {
+            console.error('Copy worker failed:', error);
         }
     };
 
-    const handlePaste = (e: React.ClipboardEvent) => {
+    const handlePaste = async (e: React.ClipboardEvent) => {
         if (!selection || !onDataChange) return; // 卫语句：无选区或无回调时返回
         setCopiedBounds(null);
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
         if (!text) return; // 卫语句：无粘贴内容时返回
 
-        const rows = text.split(/\r\n|\n|\r/).filter(row => row.length > 0);
-        if (rows.length === 0) return; // 卫语句：无有效行时返回
-
-        const startRow = Math.min(selection.start.row, selection.end.row);
-        const startCol = Math.min(selection.start.col, selection.end.col);
-        const newData = [...finalData] as DataSource;
-        let changed = false;
-
-        let maxRowIdx = startRow;
-        let maxColIdx = startCol;
-
-        rows.forEach((rowStr, rIdx) => {
-            const targetRowIdx = startRow + rIdx;
-            if (targetRowIdx >= sortedData.length) return; // 卫语句：越界跳过
-
-            maxRowIdx = Math.max(maxRowIdx, targetRowIdx);
-
-            const cells = rowStr.split('\t');
-            const record = sortedData[targetRowIdx];
-            const originalIndex = finalData.indexOf(record);
-            if (originalIndex === -1) return; // 卫语句：找不到原数据索引跳过
-
-            const newRecord = { ...finalData[originalIndex] as object };
-
-            cells.forEach((cellStr, cIdx) => {
-                const targetColIdx = startCol + cIdx;
-                if (targetColIdx >= columns.length) return; // 卫语句：越界跳过
-
-                maxColIdx = Math.max(maxColIdx, targetColIdx);
-
-                const column = columns[targetColIdx];
-                if (column.editable === false) return; // 卫语句：不可编辑跳过
-
-                (newRecord as Record<string, unknown>)[column.dataIndex as string] = cellStr;
-                changed = true;
+        try {
+            const parsedRows = await postWorkerMessage({
+                type: 'PASTE_PARSE',
+                data: { text }
             });
-            
-            newData[originalIndex] = newRecord as DataSource[number];
-        });
 
-        if (changed) {
-            onDataChange(newData);
+            if (!parsedRows || !Array.isArray(parsedRows) || parsedRows.length === 0) return; // 卫语句：无有效行时返回
+
+            const startRow = Math.min(selection.start.row, selection.end.row);
+            const startCol = Math.min(selection.start.col, selection.end.col);
+            const newData = [...finalData] as DataSource;
+            let changed = false;
+
+            let maxRowIdx = startRow;
+            let maxColIdx = startCol;
+
+            parsedRows.forEach((cells: string[], rIdx: number) => {
+                const targetRowIdx = startRow + rIdx;
+                if (targetRowIdx >= sortedData.length) return; // 卫语句：越界跳过
+
+                maxRowIdx = Math.max(maxRowIdx, targetRowIdx);
+
+                const record = sortedData[targetRowIdx];
+                const originalIndex = finalData.indexOf(record);
+                if (originalIndex === -1) return; // 卫语句：找不到原数据索引跳过
+
+                const newRecord = { ...finalData[originalIndex] as object };
+
+                cells.forEach((cellStr: string, cIdx: number) => {
+                    const targetColIdx = startCol + cIdx;
+                    if (targetColIdx >= columns.length) return; // 卫语句：越界跳过
+
+                    maxColIdx = Math.max(maxColIdx, targetColIdx);
+
+                    const column = columns[targetColIdx];
+                    if (column.editable === false) return; // 卫语句：不可编辑跳过
+
+                    (newRecord as Record<string, unknown>)[column.dataIndex as string] = cellStr;
+                    changed = true;
+                });
+                
+                newData[originalIndex] = newRecord as DataSource[number];
+            });
+
+            if (changed) {
+                onDataChange(newData);
+            }
+
+            setSelection({
+                start: { row: startRow, col: startCol },
+                end: { row: maxRowIdx, col: maxColIdx }
+            });
+            tableRef.current?.focus();
+        } catch (error) {
+            console.error('Paste worker failed:', error);
         }
-
-        setSelection({
-            start: { row: startRow, col: startCol },
-            end: { row: maxRowIdx, col: maxColIdx }
-        });
-        tableRef.current?.focus();
     };
 
     return (
