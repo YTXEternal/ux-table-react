@@ -1,4 +1,4 @@
-name: Deploy Docs
+name: Deploy Site
 
 on:
   push:
@@ -35,6 +35,14 @@ jobs:
 
       - name: Build docs
         run: pnpm docs:build
+
+      - name: Build example
+        run: pnpm build:example
+
+      - name: Copy example to docs dist
+        run: |
+          mkdir -p docs/.vitepress/dist/example
+          cp -r dist-example/* docs/.vitepress/dist/example/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
