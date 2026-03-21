@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface SelectionState {
     start: { row: number; col: number };
@@ -7,18 +7,29 @@ export interface SelectionState {
 
 export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>) => {
     const [selection, setSelection] = useState<SelectionState | null>(null);
-    const [isSelecting, setIsSelecting] = useState(false);
+    const isSelecting = useRef(false);
+
+    const setIsSelecting = (value: boolean) => {
+        isSelecting.current = value;
+    }
 
     useEffect(() => {
-        const handleGlobalMouseUp = () => setIsSelecting(false);
+        const handleGlobalMouseUp = () => {
+            setIsSelecting(false);
+            console.log('jlag', isSelecting);
+        }
         window.addEventListener('mouseup', handleGlobalMouseUp);
         return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+
     }, []);
 
     const handleCellMouseDown = (e: React.MouseEvent, rowIndex: number, colIndex: number, colCount: number, isLineNumberCol: boolean = false) => {
         if (e.button !== 0) return; // Only left click
         setIsSelecting(true);
-        
+
+        /*
+        * 基于isLineNumberCol判断当前行是否全全选
+        */
         if (isLineNumberCol) {
             setSelection({
                 start: { row: rowIndex, col: 0 },
@@ -30,13 +41,13 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>) =
                 end: { row: rowIndex, col: colIndex }
             });
         }
-        
         // Focus table for keyboard events
         tableRef.current?.focus();
     };
 
     const handleCellMouseEnter = (rowIndex: number, colIndex: number, colCount: number, isLineNumberCol: boolean = false) => {
-        if (isSelecting && selection) {
+        console.log('enter', isSelecting, selection);
+        if (isSelecting.current && selection) {
             if (isLineNumberCol) {
                 setSelection({
                     ...selection,
@@ -51,6 +62,14 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>) =
         }
     };
 
+
+    /**
+     * 选中列
+     *
+     * @param {React.MouseEvent} e 
+     * @param {number} colIndex 
+     * @param {number} rowCount 
+     */
     const handleColHeaderMouseDown = (e: React.MouseEvent, colIndex: number, rowCount: number) => {
         if (e.button !== 0) return; // Only left click
         setIsSelecting(true);
@@ -61,8 +80,16 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>) =
         tableRef.current?.focus();
     };
 
+
+
+    /**
+     * 
+     *
+     * @param {number} colIndex 
+     * @param {number} rowCount 
+     */
     const handleColHeaderMouseEnter = (colIndex: number, rowCount: number) => {
-        if (isSelecting && selection) {
+        if (isSelecting.current && selection) {
             setSelection({
                 ...selection,
                 end: { row: Math.max(0, rowCount - 1), col: colIndex }
