@@ -1,4 +1,4 @@
-import React, { useRef, useImperativeHandle } from 'react';
+import React, { useRef, useImperativeHandle, useCallback } from 'react';
 import type { UxTableProps, UxTableColumn } from './types';
 import { useResizing } from './hooks/useResizing';
 import { useSorting } from './hooks/useSorting';
@@ -10,8 +10,11 @@ import { useWebWorker } from './hooks/useWebWorker';
 import { processCopy, processPasteParse, processPaste, processDelete } from './workers/workerLogic';
 import { createTableWorker } from './workers/createWorker';
 import { useVirtualizer, defaultRangeExtractor } from '@tanstack/react-virtual';
+import type { VirtualItem } from '@tanstack/react-virtual';
 import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
+import { HeaderCell } from './components/HeaderCell';
+import { BodyCell } from './components/BodyCell';
 
 /**
  * 同步滚动条位置，复用滚动逻辑
@@ -192,8 +195,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const {
         editingCell,
         setEditingCell,
-        editValue,
-        setEditValue,
         startEditing,
         saveEdit
     } = useEditing(finalData, columns, sortedData, onDataChange);
@@ -287,7 +288,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
-    const isCancelingRef = useRef(false);
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
@@ -377,7 +377,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      * @param {number} rowIndex 行索引
      * @returns {void}
      */
-    const handleRowResizeMouseDown = (e: React.MouseEvent, rowIndex: number) => {
+    const handleRowResizeMouseDown = useCallback((e: React.MouseEvent, rowIndex: number) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -410,7 +410,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
         document.body.style.cursor = 'row-resize';
-    };
+    }, [rowHeights]);
 
     /**
      * 键盘事件策略模式处理
@@ -692,90 +692,55 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     };
 
     /**
+     * 取消编辑
+     * @returns {void}
+     */
+    const cancelEdit = useCallback(() => {
+        setEditingCell(null);
+        tableRef.current?.focus();
+    }, [setEditingCell]);
+
+    /**
      * 渲染表头单元格
-     * @param {import('@tanstack/react-virtual').VirtualItem} virtualCol 虚拟列数据
+     * @param {VirtualItem} virtualCol 虚拟列数据
      * @returns {React.ReactElement} 表头单元格组件
      */
-    const renderHeaderCell = (virtualCol: ReturnType<typeof colVirtualizer.getVirtualItems>[0]) => {
+    const renderHeaderCell = useCallback((virtualCol: VirtualItem) => {
         const index = virtualCol.index;
         const column = columns[index];
-        const key = column.key || String(column.dataIndex) || index;
         const isFixed = column.fixed;
         const offset = fixedOffsets[index];
 
         return (
-            <div
-                key={key}
-                data-testid={`ux-table-header-cell-${index}`}
-                onMouseDown={(e) => handleColHeaderMouseDown(e, index, sortedData.length)}
-                onMouseEnter={() => handleColHeaderMouseEnter(index, sortedData.length)}
-                style={{
-                    position: isFixed ? 'sticky' : 'absolute',
-                    left: isFixed === 'left' ? offset?.left : undefined,
-                    right: isFixed === 'right' ? offset?.right : undefined,
-                    transform: isFixed ? undefined : `translateX(${virtualCol.start}px)`,
-                    width: `${virtualCol.size}px`,
-                    height: '100%',
-                    zIndex: isFixed ? 4 : 3,
-                    backgroundColor: '#fafafa',
-                    borderBottom: '1px solid #e8e8e8',
-                    borderRight: '1px solid #e8e8e8',
-                    boxShadow: offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
-                    padding: '8px 16px',
-                    boxSizing: 'border-box',
-                    textAlign: 'left',
-                    userSelect: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}
-            >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {column.title as React.ReactNode}
-                </span>
-                {column.sorter && (
-                    <div
-                        data-testid={`ux-table-sorter-${index}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleSort(index);
-                        }}
-                        style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px', cursor: 'pointer' }}
-                    >
-                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'asc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
-                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'desc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
-                    </div>
-                )}
-                {column.resizable !== false && (
-                    <div
-                        data-testid={`ux-table-resizer-${index}`}
-                        onMouseDown={(e) => handleResizeMouseDown(e, index)}
-                        style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: '5px',
-                            cursor: 'col-resize',
-                            zIndex: 1
-                        }}
-                    />
-                )}
-            </div>
+            <HeaderCell
+                key={column.key || String(column.dataIndex) || index}
+                index={index}
+                column={column}
+                virtualStart={virtualCol.start}
+                virtualSize={virtualCol.size}
+                isFixed={isFixed}
+                offset={offset}
+                sortOrder={sortState?.order}
+                isSorted={sortState?.colIndex === index}
+                dataLength={sortedData.length}
+                handleColHeaderMouseDown={handleColHeaderMouseDown}
+                handleColHeaderMouseEnter={handleColHeaderMouseEnter}
+                handleSort={handleSort}
+                handleResizeMouseDown={handleResizeMouseDown}
+            />
         );
-    };
+    }, [columns, fixedOffsets, sortState, sortedData.length, handleColHeaderMouseDown, handleColHeaderMouseEnter, handleSort, handleResizeMouseDown]);
 
     /**
      * 渲染数据体单元格
-     * @param {import('@tanstack/react-virtual').VirtualItem} virtualCol 虚拟列数据
+     * @param {VirtualItem} virtualCol 虚拟列数据
      * @param {number} rowIndex 行索引
      * @param {Record<string, unknown>} record 行数据
      * @returns {React.ReactElement} 数据体单元格组件
      */
-    const renderBodyCell = (virtualCol: ReturnType<typeof colVirtualizer.getVirtualItems>[0], rowIndex: number, record: Record<string, unknown>) => {
+    const renderBodyCell = useCallback((virtualCol: VirtualItem, rowIndex: number, record: Record<string, unknown>) => {
         const colIndex = virtualCol.index;
         const column = columns[colIndex];
-        const colKey = column.key || String(column.dataIndex) || colIndex;
         const isFixed = column.fixed;
         const offset = fixedOffsets[colIndex];
         const isSelected = isCellSelected(rowIndex, colIndex);
@@ -790,121 +755,50 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             rowIndex >= cutBounds.top && rowIndex <= cutBounds.bottom &&
             colIndex >= cutBounds.left && colIndex <= cutBounds.right;
 
-        const isAntsTop = (isCopied && rowIndex === copiedBounds.top) || (isCut && rowIndex === cutBounds.top);
-        const isAntsBottom = (isCopied && rowIndex === copiedBounds.bottom) || (isCut && rowIndex === cutBounds.bottom);
-        const isAntsLeft = (isCopied && colIndex === copiedBounds.left) || (isCut && colIndex === cutBounds.left);
-        const isAntsRight = (isCopied && colIndex === copiedBounds.right) || (isCut && colIndex === cutBounds.right);
+        const isAntsTop = !!((isCopied && rowIndex === copiedBounds.top) || (isCut && rowIndex === cutBounds.top));
+        const isAntsBottom = !!((isCopied && rowIndex === copiedBounds.bottom) || (isCut && rowIndex === cutBounds.bottom));
+        const isAntsLeft = !!((isCopied && colIndex === copiedBounds.left) || (isCut && colIndex === cutBounds.left));
+        const isAntsRight = !!((isCopied && colIndex === copiedBounds.right) || (isCut && colIndex === cutBounds.right));
+
+        const isRowSelectionMode = !!(selection && selection.start.col === 0 && selection.end.col === columns.length - 1);
+        const isLineNumberCol = column.key === '_line_number_';
+
+        const initialEditValue = isEditing ? (editingCell.initialValue !== undefined ? editingCell.initialValue : String(value ?? '')) : '';
 
         return (
-            <div
-                key={colKey}
-                data-testid={`ux-table-cell-${rowIndex}-${colIndex}`}
-                onMouseDown={(e) => {
-                    const isLineNumberCol = column.key === '_line_number_';
-                    handleCellMouseDown(e, rowIndex, colIndex, columns.length, isLineNumberCol);
-                }}
-                onMouseEnter={() => {
-                    const isRowSelectionMode = selection && selection.start.col === 0 && selection.end.col === columns.length - 1;
-                    const isLineNumberCol = column.key === '_line_number_';
-                    handleCellMouseEnter(rowIndex, colIndex, columns.length, isLineNumberCol || !!isRowSelectionMode);
-                }}
-                onDoubleClick={() => {
-                    if (column.editable !== false) {
-                        startEditing(rowIndex, colIndex);
-                    }
-                }}
-                style={{
-                    position: isFixed ? 'sticky' : 'absolute',
-                    left: isFixed === 'left' ? offset?.left : undefined,
-                    right: isFixed === 'right' ? offset?.right : undefined,
-                    transform: isFixed ? undefined : `translateX(${virtualCol.start}px)`,
-                    width: `${virtualCol.size}px`,
-                    height: '100%',
-                    zIndex: isFixed ? (isActive ? 6 : (isSelected ? 5 : 4)) : (isActive ? 3 : (isSelected ? 2 : 1)),
-                    backgroundColor: isSelected ? (isActive ? '#ffffff' : '#e6f7ff') : '#ffffff',
-                    borderBottom: '1px solid #e8e8e8',
-                    borderRight: '1px solid #e8e8e8',
-                    boxShadow: [
-                        (isSelected && selectionBounds?.top === rowIndex) ? 'inset 0 2px 0 0 #1890ff' : 'none',
-                        (isSelected && selectionBounds?.bottom === rowIndex) ? 'inset 0 -2px 0 0 #1890ff' : 'none',
-                        (isSelected && selectionBounds?.left === colIndex) ? 'inset 2px 0 0 0 #1890ff' : 'none',
-                        (isSelected && selectionBounds?.right === colIndex) ? 'inset -2px 0 0 0 #1890ff' : 'none',
-                        (isActive && (!selectionBounds || (selectionBounds.top === selectionBounds.bottom && selectionBounds.left === selectionBounds.right))) ? 'inset 0 0 0 2px #1890ff' : 'none',
-                        offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : 'none',
-                        offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'
-                    ].filter(s => s !== 'none').join(', ') || 'none',
-                    padding: isEditing || column.key === '_line_number_' ? 0 : '8px 16px',
-                    boxSizing: 'border-box',
-                    overflow: isEditing ? 'visible' : 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    cursor: 'cell',
-                    display: 'flex',
-                    alignItems: 'center',
-                    opacity: isCut ? 0.5 : 1
-                }}
-            >
-                {isAntsTop && <div className={styles['marching-ants-top']} />}
-                {isAntsBottom && <div className={styles['marching-ants-bottom']} />}
-                {isAntsLeft && <div className={styles['marching-ants-left']} />}
-                {isAntsRight && <div className={styles['marching-ants-right']} />}
-
-                {colIndex === 0 && (
-                    <div
-                        onMouseDown={(e) => handleRowResizeMouseDown(e, rowIndex)}
-                        style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: '5px',
-                            cursor: 'row-resize',
-                            zIndex: 5
-                        }}
-                        data-testid={`ux-table-row-resizer-${rowIndex}`}
-                    />
-                )}
-
-                {isEditing ? (
-                    <input
-                        autoFocus
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={() => {
-                            if (!isCancelingRef.current) {
-                                saveEdit();
-                            }
-                            isCancelingRef.current = false;
-                        }}
-                        onKeyDown={(e) => {
-                            e.stopPropagation();
-                            if (e.key === 'Enter') {
-                                saveEdit();
-                            } else if (e.key === 'Escape') {
-                                isCancelingRef.current = true;
-                                setEditingCell(null);
-                                tableRef.current?.focus();
-                            }
-                        }}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            boxSizing: 'border-box',
-                            border: '2px solid #1890ff',
-                            padding: '6px 14px',
-                            outline: 'none',
-                            fontFamily: 'inherit',
-                            fontSize: 'inherit'
-                        }}
-                    />
-                ) : (
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'flex', justifyContent: column.key === '_line_number_' ? 'center' : 'flex-start' }}>
-                        {column.render ? column.render(value, record as DataSource[number], rowIndex) : (value as React.ReactNode)}
-                    </div>
-                )}
-            </div>
+            <BodyCell
+                key={column.key || String(column.dataIndex) || colIndex}
+                rowIndex={rowIndex}
+                colIndex={colIndex}
+                virtualStart={virtualCol.start}
+                virtualSize={virtualCol.size}
+                record={record as DataSource[number]}
+                value={value}
+                column={column}
+                isFixed={isFixed}
+                offset={offset}
+                isSelected={isSelected}
+                isActive={isActive}
+                isEditing={isEditing}
+                isLineNumberCol={isLineNumberCol}
+                columnsLength={columns.length}
+                selectionBounds={selectionBounds}
+                isRowSelectionMode={isRowSelectionMode}
+                isAntsTop={isAntsTop}
+                isAntsBottom={isAntsBottom}
+                isAntsLeft={isAntsLeft}
+                isAntsRight={isAntsRight}
+                isCut={!!isCut}
+                handleCellMouseDown={handleCellMouseDown}
+                handleCellMouseEnter={handleCellMouseEnter}
+                handleRowResizeMouseDown={handleRowResizeMouseDown}
+                startEditing={startEditing}
+                saveEdit={saveEdit}
+                cancelEdit={cancelEdit}
+                initialEditValue={initialEditValue}
+            />
         );
-    };
+    }, [columns, fixedOffsets, isCellSelected, isCellActive, editingCell, copiedBounds, cutBounds, selection, selectionBounds, handleCellMouseDown, handleCellMouseEnter, handleRowResizeMouseDown, startEditing, saveEdit, cancelEdit]);
 
     return (
         <div
@@ -977,11 +871,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start + 40}px)`, // +40 为表头高度
                                     display: 'flex',
-                                    zIndex: rowVirtualizer.getVirtualItems().some(vCol => {
-                                        const rIdx = virtualRow.index;
-                                        const cIdx = vCol.index;
-                                        return isCellActive(rIdx, cIdx) || isCellSelected(rIdx, cIdx);
-                                    }) ? 2 : 1 // 提升包含选中单元格的行的层级
+                                    zIndex: (selectionBounds && rowIndex >= selectionBounds.top && rowIndex <= selectionBounds.bottom) ? 2 : 1 // 提升包含选中单元格的行的层级
                                 }}
                             >
                                 {colVirtualizer.getVirtualItems().map(virtualCol => renderBodyCell(virtualCol, rowIndex, record as Record<string, unknown>))}

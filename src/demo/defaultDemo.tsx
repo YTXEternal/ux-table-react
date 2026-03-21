@@ -79,11 +79,11 @@ function DefaultDemo() {
 
     return (
         <div>
+            {/* <img src='/images/634244.png' alt="" />
             <img src='/images/634244.png' alt="" />
             <img src='/images/634244.png' alt="" />
-            <img src='/images/634244.png' alt="" />
-            <img src='/images/634244.png' alt="" />
-            <div style={{ padding: 20, height: '500px', display: 'flex', flexDirection: 'column' }}>
+            <img src='/images/634244.png' alt="" /> */}
+            <div style={{ padding: 20, height: '500px', width: '1000px', display: 'flex', flexDirection: 'column' }}>
                 <h1>UxTable</h1>
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                     <UxTable<DataType[]>
@@ -91,8 +91,8 @@ function DefaultDemo() {
                         data={data}
                         rowKey="key"
                         onDataChange={onDataChange}
-                        gridConfig={{ rows: 20, cols: 20 }}
-                        infinite={{ row: 10, col: 5, gap: 5 }}
+                        gridConfig={{ rows: 900, cols: 900 }}
+                        infinite={{ row: 10, col: 5, gap: 2 }}
                         style={{ height: '100%' }}
                         lineShow={true}
                         isWorker={window.location.search.includes('isWorker=false') ? false : true}
