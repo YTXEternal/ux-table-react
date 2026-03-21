@@ -91,8 +91,8 @@ function DefaultDemo() {
                         data={data}
                         rowKey="key"
                         onDataChange={onDataChange}
-                        gridConfig={{ rows: 900, cols: 900 }}
-                        infinite={{ row: 10, col: 5, gap: 2 }}
+                        gridConfig={{ rows: isPerfTest ? 900 : 20, cols: isPerfTest ? 900 : 20 }}
+                        infinite={{ row: 10, col: 5, gap: 5 }}
                         style={{ height: '100%' }}
                         lineShow={true}
                         isWorker={window.location.search.includes('isWorker=false') ? false : true}
