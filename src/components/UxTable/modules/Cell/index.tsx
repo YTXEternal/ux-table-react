@@ -1,6 +1,12 @@
 import React from 'react';
 import type { CellProps } from './types';
 
+/**
+ * 基础单元格组件
+ * @template RecordType 记录数据的类型
+ * @param {CellProps<RecordType>} props 单元格的属性
+ * @returns {React.ReactElement} 渲染的单元格 td 元素
+ */
 export const Cell = <RecordType,>({
     record,
     column,
@@ -17,13 +23,16 @@ export const Cell = <RecordType,>({
     onEditSave,
     onEditCancel
 }: CellProps<RecordType>) => {
+    // 获取当前列在数据记录中对应的值
     const value = (record as Record<string, unknown>)[column.dataIndex as string];
+    // 是否为固定列
     const isFixed = column.fixed;
 
+    // 避免在处理 Escape 键取消编辑时触发 onBlur 保存逻辑的标识
     const isCancelingRef = React.useRef(false);
 
     return (
-        <td 
+        <td
             onMouseDown={onMouseDown}
             onMouseEnter={onMouseEnter}
             onDoubleClick={onDoubleClick}
@@ -51,6 +60,7 @@ export const Cell = <RecordType,>({
                     value={editValue}
                     onChange={(e) => onEditChange(e.target.value)}
                     onBlur={() => {
+                        // 如果是通过 Escape 取消编辑，则不执行保存
                         if (isCancelingRef.current) {
                             isCancelingRef.current = false;
                             return;
@@ -58,7 +68,7 @@ export const Cell = <RecordType,>({
                         onEditSave();
                     }}
                     onKeyDown={(e) => {
-                        e.stopPropagation(); 
+                        e.stopPropagation();
                         if (e.key === 'Enter') {
                             onEditSave();
                         } else if (e.key === 'Escape') {

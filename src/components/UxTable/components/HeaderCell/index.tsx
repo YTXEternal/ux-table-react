@@ -1,6 +1,13 @@
 import React, { memo } from 'react';
 import type { HeaderCellProps } from './types';
 
+/**
+ * 虚拟滚动表头单元格内部组件
+ * 负责渲染单个表头单元格，处理其定位、排序指示、列宽拖拽以及选列交互
+ * @template RecordType 记录数据的类型
+ * @param {HeaderCellProps<RecordType>} props 单元格的属性
+ * @returns {React.ReactElement} 渲染的表头单元格 div 元素
+ */
 const HeaderCellInner = <RecordType,>({
     index,
     column,
@@ -16,6 +23,7 @@ const HeaderCellInner = <RecordType,>({
     handleSort,
     handleResizeMouseDown
 }: HeaderCellProps<RecordType>) => {
+    // 确定列的唯一键值
     const key = column.key || String(column.dataIndex) || index;
 
     return (
@@ -48,6 +56,7 @@ const HeaderCellInner = <RecordType,>({
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {column.title as React.ReactNode}
             </span>
+            {/* 渲染排序指示器（仅在列配置了 sorter 时显示） */}
             {column.sorter && (
                 <div
                     data-testid={`ux-table-sorter-${index}`}
@@ -61,6 +70,7 @@ const HeaderCellInner = <RecordType,>({
                     <span style={{ color: isSorted && sortOrder === 'desc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
                 </div>
             )}
+            {/* 渲染列宽拖拽调整手柄（如果列配置未禁用 resizable） */}
             {column.resizable !== false && (
                 <div
                     data-testid={`ux-table-resizer-${index}`}
@@ -80,6 +90,10 @@ const HeaderCellInner = <RecordType,>({
     );
 };
 
+/**
+ * 带有性能优化 (React.memo) 的表头单元格组件
+ * 通过自定义对比函数，仅在关键属性发生变化时重新渲染
+ */
 export const HeaderCell = memo(HeaderCellInner, (prevProps, nextProps) => {
     return (
         prevProps.index === nextProps.index &&

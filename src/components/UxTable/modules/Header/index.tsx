@@ -1,6 +1,13 @@
 import React from 'react';
 import type { HeaderProps } from './types';
 
+/**
+ * 表头组件
+ * 负责渲染表格的列标题、排序指示器以及列宽调整手柄
+ * @template RecordType 记录数据的类型
+ * @param {HeaderProps<RecordType>} props 表头组件的属性
+ * @returns {React.ReactElement} 渲染的表头 thead 元素
+ */
 export const Header = <RecordType,>({
     columns,
     sortState,
@@ -38,6 +45,7 @@ export const Header = <RecordType,>({
                         >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <span>{column.title as React.ReactNode}</span>
+                                {/* 排序指示器，显示上下箭头 */}
                                 {column.sorter && (
                                     <div style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px' }}>
                                         <span style={{ color: sortState?.colIndex === index && sortState.order === 'asc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
@@ -45,6 +53,7 @@ export const Header = <RecordType,>({
                                     </div>
                                 )}
                             </div>
+                            {/* 列宽调整手柄 */}
                             {column.resizable !== false && (
                                 <div
                                     onMouseDown={(e) => onResizeMouseDown(e, index)}

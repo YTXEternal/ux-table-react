@@ -1,5 +1,12 @@
 import type { CopyPayloadData, DeletePayloadData, PastePayloadData } from './types';
 
+/**
+ * 处理复制逻辑，将选中的数据转换为制表符分隔的字符串
+ * 
+ * @param {CopyPayloadData['selectedData']} selectedData 选中的数据行
+ * @param {CopyPayloadData['columns']} columns 选中的列配置
+ * @returns {string} 格式化后的字符串，用于写入剪贴板
+ */
 export const processCopy = (
     selectedData: CopyPayloadData['selectedData'],
     columns: CopyPayloadData['columns']
@@ -9,6 +16,7 @@ export const processCopy = (
         const rowData: string[] = [];
         const record = selectedData[i];
         for (let j = 0; j < columns.length; j++) {
+            // 忽略行号列
             if (columns[j].key === '_line_number_') continue;
             const val = record[columns[j].dataIndex as string];
             rowData.push(val !== null && val !== undefined ? String(val) : '');
@@ -20,6 +28,15 @@ export const processCopy = (
     return rows.join('\n');
 };
 
+/**
+ * 处理删除逻辑，将选中区域内的数据清空（设置为 null）
+ * 
+ * @param {DeletePayloadData['finalData']} finalData 原始完整数据
+ * @param {DeletePayloadData['sortedData']} sortedData 排序后的当前展示数据
+ * @param {DeletePayloadData['columns']} columns 完整的列配置
+ * @param {DeletePayloadData['bounds']} bounds 选区的边界（行列索引范围）
+ * @returns {{ newData: Record<string, unknown>[] } | null} 返回更新后的数据，如果无变化则返回 null
+ */
 export const processDelete = (
     finalData: DeletePayloadData['finalData'],
     sortedData: DeletePayloadData['sortedData'],
@@ -49,11 +66,29 @@ export const processDelete = (
     return { newData };
 };
 
+/**
+ * 解析粘贴的文本数据，按行和制表符分割
+ * 
+ * @param {string} text 剪贴板中的纯文本
+ * @returns {string[][]} 解析后的二维字符串数组
+ */
 export const processPasteParse = (text: string) => {
     const rows = text.split(/\r\n|\n|\r/).filter((row: string) => row.length > 0);
     return rows.map((row: string) => row.split('\t'));
 };
 
+/**
+ * 处理粘贴逻辑，将解析后的数据合并到表格数据中，并支持处理剪切后的清空操作
+ * 
+ * @param {PastePayloadData['text']} text 剪贴板中的纯文本
+ * @param {PastePayloadData['finalData']} finalData 原始完整数据
+ * @param {PastePayloadData['sortedData']} sortedData 排序后的当前展示数据
+ * @param {PastePayloadData['columns']} columns 完整的列配置
+ * @param {PastePayloadData['startRow']} startRow 粘贴起始行索引
+ * @param {PastePayloadData['startCol']} startCol 粘贴起始列索引
+ * @param {PastePayloadData['cutBounds']} [cutBounds] 如果是剪切操作，则提供被剪切的区域边界
+ * @returns {{ newData: Record<string, unknown>[], maxRowIdx: number, maxColIdx: number } | null} 返回更新后的数据和最大行列索引，如果无变化则返回 null
+ */
 export const processPaste = (
     text: PastePayloadData['text'],
     finalData: PastePayloadData['finalData'],
@@ -71,6 +106,7 @@ export const processPaste = (
     const newData = [...finalData];
     let changed = false;
 
+    // 处理剪切后的源数据清空
     if (cutBounds) {
         for (let rIdx = cutBounds.top; rIdx <= cutBounds.bottom; rIdx++) {
             const record = sortedData[rIdx];
