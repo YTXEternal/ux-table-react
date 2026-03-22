@@ -1,7 +1,6 @@
 import React, { useRef, useImperativeHandle, useCallback, useMemo } from 'react';
-// 仅在测试环境引入 act 以避免在测试中因异步状态更新导致的警告
-
 import { act } from 'react';
+const isTestEnv = process.env.NODE_ENV === 'test';
 import type { UxTableProps, UxTableColumn } from './types';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useClipboard } from './hooks/useClipboard';
@@ -309,8 +308,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
-
-
+    // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
         count: sortedData.length,
         getScrollElement: () => parentRef.current,
@@ -708,13 +706,20 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             }) as { newData: Record<string, unknown>[]; maxRowIdx: number; maxColIdx: number } | null;
 
             if (result && result.newData) {
-                await act(async () => {
+                const doPasteUpdate = () => {
                     handleDataChange(result.newData as DataSource);
                     setSelection({
                         start: { row: startRow, col: startCol },
                         end: { row: result.maxRowIdx, col: result.maxColIdx }
                     });
-                });
+                };
+                if (isTestEnv) {
+                    await act(async () => {
+                        doPasteUpdate();
+                    });
+                } else {
+                    doPasteUpdate();
+                }
                 tableRef.current?.focus();
 
                 if (afterPaste) {
@@ -729,11 +734,17 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 }
             }
 
-            // 无论粘贴是否成功，都清空 cutBounds 和 copiedBounds
-            await act(async () => {
+            const doClearBounds = () => {
                 setCutBounds(null);
                 setCopiedBounds(null);
-            });
+            };
+            if (isTestEnv) {
+                await act(async () => {
+                    doClearBounds();
+                });
+            } else {
+                doClearBounds();
+            }
         } catch (error) {
             console.error('Paste worker failed:', error);
         }
