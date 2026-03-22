@@ -23,6 +23,9 @@ const HeaderCellInner = <RecordType,>({
     isSelectionLeft,
     isSelectionRight,
     isAntsTop,
+    isAntsBottom,
+    isAntsLeft,
+    isAntsRight,
     handleColHeaderMouseDown,
     handleColHeaderMouseEnter,
     handleSort,
@@ -70,6 +73,9 @@ const HeaderCellInner = <RecordType,>({
         >
             {/* 渲染复制/剪切操作时的蚂蚁线效果 */}
             {isAntsTop && <div className={styles['marching-ants-top']} />}
+            {isAntsBottom && <div className={styles['marching-ants-bottom']} />}
+            {isAntsLeft && <div className={styles['marching-ants-left']} />}
+            {isAntsRight && <div className={styles['marching-ants-right']} />}
 
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {column.title as React.ReactNode}
@@ -128,6 +134,9 @@ export const HeaderCell = memo(HeaderCellInner, (prevProps, nextProps) => {
         prevProps.isSelectionLeft === nextProps.isSelectionLeft &&
         prevProps.isSelectionRight === nextProps.isSelectionRight &&
         prevProps.isAntsTop === nextProps.isAntsTop &&
+        prevProps.isAntsBottom === nextProps.isAntsBottom &&
+        prevProps.isAntsLeft === nextProps.isAntsLeft &&
+        prevProps.isAntsRight === nextProps.isAntsRight &&
         prevProps.dataLength === nextProps.dataLength &&
         prevProps.column.title === nextProps.column.title &&
         prevProps.column.width === nextProps.column.width &&

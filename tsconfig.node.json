@@ -4,7 +4,7 @@
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "ESNext",
-    "types": ["node"],
+    "types": ["node","@types/node"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -20,7 +20,7 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
   },
-  "include": ["vite.config.ts", "vite.build.config.ts", "scripts/**/*"]
+  "include": ["vite.config.ts", "vite.base.config.ts", "vite.build.config.ts", "scripts/**/*"]
 }

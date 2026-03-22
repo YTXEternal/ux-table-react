@@ -38,6 +38,12 @@ export interface HeaderCellProps<RecordType> {
     isSelectionRight?: boolean;
     /** 顶部是否为蚂蚁线（正在复制/剪切） */
     isAntsTop?: boolean;
+    /** 底部是否为蚂蚁线（正在复制/剪切） */
+    isAntsBottom?: boolean;
+    /** 左侧是否为蚂蚁线（正在复制/剪切） */
+    isAntsLeft?: boolean;
+    /** 右侧是否为蚂蚁线（正在复制/剪切） */
+    isAntsRight?: boolean;
     /** 鼠标按下调整列宽手柄时的回调函数 */
     handleResizeMouseDown: (e: React.MouseEvent, index: number) => void;
 }

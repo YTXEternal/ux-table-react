@@ -255,6 +255,38 @@ describe('UxTable 组件', () => {
   });
 
   describe('带蚂蚁线动画的复制功能', () => {
+    it('选中列头时，复制该列会为列头应用蚂蚁线动画', async () => {
+      const user = userEvent.setup();
+
+      // Setup document execCommand mock
+      const originalExecCommand = document.execCommand;
+      document.execCommand = jest.fn();
+
+      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+
+      // Select the entire column by clicking header
+      const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
+      await user.click(headerCell);
+
+      // Press Ctrl+C to copy
+      await act(async () => {
+        fireEvent.keyDown(headerCell, { key: 'c', ctrlKey: true });
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      // Verify animation is triggered on header cell
+      const children = Array.from(headerCell.children);
+      const hasTopAnts = children.some(el => el.className.includes('marching-ants-top'));
+      const hasLeftAnts = children.some(el => el.className.includes('marching-ants-left'));
+      const hasRightAnts = children.some(el => el.className.includes('marching-ants-right'));
+      expect(hasTopAnts).toBe(true);
+      expect(hasLeftAnts).toBe(true);
+      expect(hasRightAnts).toBe(true);
+
+      // Restore
+      document.execCommand = originalExecCommand;
+    });
+
     it('复制单元格时显示蚂蚁线动画并排除行号列', async () => {
       const user = userEvent.setup();
 
@@ -369,6 +401,9 @@ describe('UxTable 组件', () => {
       beforeCopy.mockResolvedValue(true);
       rerender(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
 
+      // 需要重新选中单元格，因为复制操作清空了选区
+      await user.click(cell00);
+
       await act(async () => {
         fireEvent.keyDown(cell00, { key: 'c', ctrlKey: true });
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -381,6 +416,31 @@ describe('UxTable 组件', () => {
   });
 
   describe('剪切功能', () => {
+    it('选中列头时，剪切该列会为列头应用蚂蚁线动画', async () => {
+      const user = userEvent.setup();
+
+      // Setup document execCommand mock
+      const originalExecCommand = document.execCommand;
+      document.execCommand = jest.fn();
+
+      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+
+      // Select the entire column by clicking header
+      const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
+      await user.click(headerCell);
+
+      // Press Ctrl+X to cut
+      fireEvent.keyDown(headerCell, { key: 'x', ctrlKey: true });
+
+      // Verify animation is triggered on header cell
+      const children = Array.from(headerCell.children);
+      const hasTopAnts = children.some(el => el.className.includes('marching-ants-top'));
+      expect(hasTopAnts).toBe(true);
+
+      // Restore
+      document.execCommand = originalExecCommand;
+    });
+
     it('剪切单元格时显示蚂蚁线动画和 0.5 的不透明度', async () => {
       const user = userEvent.setup();
 
