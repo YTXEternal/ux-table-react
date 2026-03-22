@@ -1,8 +1,7 @@
 # UX Table React
 
 [![npm version](https://img.shields.io/npm/v/ux-table-react.svg)](https://www.npmjs.com/package/ux-table-react)
-[![License](https://img.shields.io/npm/l/ux-table-react.svg)](https://github.com/ux-table/ux-table-react/blob/main/LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+[![License](MIT)](https://github.com/ux-table/ux-table-react/blob/master/LICENSE)
 [![React](https://img.shields.io/badge/React-18%20%7C%2019-blue.svg)](https://react.dev/)
 
 UX Table React 是一个基于 React 开发的高性能表格组件库。它专为大数据量和复杂交互场景设计，内置了丰富的数据网格（DataGrid）功能，在保持轻量级的同时提供极致的渲染性能。
@@ -34,6 +33,10 @@ yarn add ux-table-react
 ```
 
 > **注意**：本项目依赖 `react` 和 `react-dom`（>=18.0.0），请确保你的项目中已安装相关对等依赖。
+
+## 💻 在线预览
+
+[👉 点击查看在线预览](https://ytxeternal.github.io/ux-table-react/example)
 
 ## 🚀 使用文档 (快速上手)
 

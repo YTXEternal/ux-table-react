@@ -1,7 +1,6 @@
 import React, { useRef, useImperativeHandle, useCallback, useMemo } from 'react';
-// 仅在测试环境引入 act 以避免在测试中因异步状态更新导致的警告
-
 import { act } from 'react';
+const isTestEnv = process.env.NODE_ENV === 'test';
 import type { UxTableProps, UxTableColumn } from './types';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useClipboard } from './hooks/useClipboard';
@@ -309,8 +308,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
-
-
+    // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
         count: sortedData.length,
         getScrollElement: () => parentRef.current,
@@ -562,8 +560,12 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCopy = async () => {
         if (!selection) return; // 卫语句：防止无选区时复制
-        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
-        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
+        // 复制的时候需要吧之前选中的实线区域清空
+        setSelection(null);
+        const minRow = Math.min(selection.start.row, selection.end.row);
+        const maxRow = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, minRow);
+        const r2 = Math.max(0, maxRow);
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
@@ -575,7 +577,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             if (allowCopy === false) return; // 卫语句：外部阻止复制
         }
 
-        setCopiedBounds({ top: r1, bottom: r2, left: c1, right: c2 });
+        setCopiedBounds({ top: minRow, bottom: maxRow, left: c1, right: c2 });
         setCutBounds(null); // 互斥
 
         const sanitizedColumns = selectedColumns.map(col => ({
@@ -605,12 +607,14 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCut = async () => {
         if (!selection) return; // 卫语句：防止无选区时剪切
-        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
-        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
+        const minRow = Math.min(selection.start.row, selection.end.row);
+        const maxRow = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, minRow);
+        const r2 = Math.max(0, maxRow);
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
-        setCutBounds({ top: r1, bottom: r2, left: c1, right: c2 });
+        setCutBounds({ top: minRow, bottom: maxRow, left: c1, right: c2 });
         setCopiedBounds(null); // 互斥
 
         const selectedData = sortedData.slice(r1, r2 + 1) as Record<string, unknown>[];
@@ -708,13 +712,20 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             }) as { newData: Record<string, unknown>[]; maxRowIdx: number; maxColIdx: number } | null;
 
             if (result && result.newData) {
-                await act(async () => {
+                const doPasteUpdate = () => {
                     handleDataChange(result.newData as DataSource);
                     setSelection({
                         start: { row: startRow, col: startCol },
                         end: { row: result.maxRowIdx, col: result.maxColIdx }
                     });
-                });
+                };
+                if (isTestEnv) {
+                    await act(async () => {
+                        doPasteUpdate();
+                    });
+                } else {
+                    doPasteUpdate();
+                }
                 tableRef.current?.focus();
 
                 if (afterPaste) {
@@ -729,11 +740,17 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 }
             }
 
-            // 无论粘贴是否成功，都清空 cutBounds 和 copiedBounds
-            await act(async () => {
+            const doClearBounds = () => {
                 setCutBounds(null);
                 setCopiedBounds(null);
-            });
+            };
+            if (isTestEnv) {
+                await act(async () => {
+                    doClearBounds();
+                });
+            } else {
+                doClearBounds();
+            }
         } catch (error) {
             console.error('Paste worker failed:', error);
         }
@@ -792,6 +809,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             index >= cutBounds.left && index <= cutBounds.right;
 
         const isAntsTop = !!((isCopied && copiedBounds.top === -1) || (isCut && cutBounds.top === -1));
+        // 表头始终是区域的最上方，只有当仅复制表头时才有 bottom（当前逻辑不允许仅复制表头，所以 bottom 为 false）
+        // 但是为了组件的完整性，这里还是计算一下
+        const isAntsBottom = !!((isCopied && copiedBounds.bottom === -1) || (isCut && cutBounds.bottom === -1));
+        const isAntsLeft = !!((isCopied && index === copiedBounds.left) || (isCut && index === cutBounds.left));
+        const isAntsRight = !!((isCopied && index === copiedBounds.right) || (isCut && index === cutBounds.right));
 
         return (
             <HeaderCell
@@ -808,6 +830,9 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 isSelectionLeft={isSelectionLeft}
                 isSelectionRight={isSelectionRight}
                 isAntsTop={isAntsTop}
+                isAntsBottom={isAntsBottom}
+                isAntsLeft={isAntsLeft}
+                isAntsRight={isAntsRight}
                 dataLength={sortedData.length}
                 handleColHeaderMouseDown={handleColHeaderMouseDown}
                 handleColHeaderMouseEnter={handleColHeaderMouseEnter}

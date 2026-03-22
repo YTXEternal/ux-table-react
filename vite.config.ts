@@ -1,22 +1,12 @@
-import { defineConfig } from 'vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
-import UnoCSS from 'unocss/vite'
+import { defineConfig, mergeConfig } from 'vite'
 import dts from 'vite-plugin-dts'
 import { resolve } from 'path'
+import { baseConfig } from './vite.base.config'
 
 // https://vite.dev/config/
-export default defineConfig({
-  publicDir: false, // 禁用 public 目录，避免打包时复制 public/images
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, './src')
-    }
-  },
+export default defineConfig(mergeConfig(baseConfig, {
+  publicDir: false,
   plugins: [
-    UnoCSS(),
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
     dts({
       insertTypesEntry: true,
       include: ['src'],
@@ -29,20 +19,21 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'UxTableReact',
-      fileName: (format) => `ux-table-react.${format}.js`
+      fileName: (format: string) => `ux-table-react.${format}.js`
     },
     rollupOptions: {
       // 确保外部化处理那些你不想打包进库的依赖
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'react/compiler-runtime'],
       output: {
         // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
-          'react/jsx-runtime': 'jsxRuntime'
+          'react/jsx-runtime': 'jsxRuntime',
+          'react/compiler-runtime': 'ReactCompilerRuntime'
         },
         assetFileNames: 'ux-table-react.[ext]' // 统一 CSS 等静态资源命名
       }
     }
   }
-})
+}))
