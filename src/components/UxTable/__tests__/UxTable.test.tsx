@@ -60,17 +60,17 @@ describe('UxTable 组件', () => {
 
   it('当 lineShow 为 true (默认值) 时渲染行号', () => {
     // The render function in the mock returns what we rendered. The line number column renders 1 and 2
-    render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} />);
+    render(<UxTable columns={columns} data={data} rowKey="key" />);
     // The render function of the line number column uses ReactNode, let's find it by testid
     // First column is line number, so cell-0-0 and cell-1-0 should contain "1" and "2" respectively
     expect(screen.getByTestId('ux-table-cell-0-0')).toHaveTextContent('1');
     expect(screen.getByTestId('ux-table-cell-1-0')).toHaveTextContent('2');
   });
 
-  it('当 lineShow 为 false 时不渲染行号', () => {
-    render(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} />);
-    // If lineShow is false, cell-0-0 should be "John Doe", not "1"
-    expect(screen.getByTestId('ux-table-cell-0-0')).toHaveTextContent('John Doe');
+  it('当没有提供数据时优雅地处理', () => {
+    const { container } = render(<UxTable columns={columns} data={[]} rowKey="key" />);
+    // If no data, cell-0-0 won't exist but headers should be fine
+    expect(container).toBeInTheDocument();
   });
 
   it('正确渲染表头', () => {
@@ -92,8 +92,8 @@ describe('UxTable 组件', () => {
   it('补齐数据以匹配 gridConfig 并用 null 填充缺失值', () => {
     const gridConfig = { rows: 3, cols: 3 };
     const testData = [{ key: '1', name: 'John Doe' }] as DataType[];
-    // lineShow = false to match original grid testing layout exactly
-    render(<UxTable columns={columns} data={testData} rowKey="key" gridConfig={gridConfig} lineShow={false} />);
+    //  to match original grid testing layout exactly
+    render(<UxTable columns={columns} data={testData} rowKey="key" gridConfig={gridConfig}  />);
 
     // The test mock virtualizer renders all items
     // If target cols is 3, columns length becomes 3 (1, 2, 3)
@@ -114,7 +114,7 @@ describe('UxTable 组件', () => {
     fireEvent.keyDown(cell01, { key: 'a', ctrlKey: true });
 
     // Both data cells in the row should be selected (having blue background style)
-    // Note: since lineShow=true, columns count is 3. The 3rd column index is 2
+    // Note: since , columns count is 3. The 3rd column index is 2
     const cell02 = screen.getByTestId('ux-table-cell-0-2');
 
     // In our implementation, handleSelectAll doesn't set isActive to the first cell, 
@@ -165,7 +165,7 @@ describe('UxTable 组件', () => {
 
   it('点击行号单元格时选中整行', async () => {
     const user = userEvent.setup();
-    render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} />);
+    render(<UxTable columns={columns} data={data} rowKey="key"  />);
 
     // cell-0-0 is the line number cell for the first row
     const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
@@ -188,22 +188,21 @@ describe('UxTable 组件', () => {
       { title: 'Name', dataIndex: 'name', key: 'name', sorter: true }
     ];
     const user = userEvent.setup();
-    // Use lineShow={false} to simplify indices for this test
-    render(<UxTable columns={sortableColumns} data={data} rowKey="key" lineShow={false} />);
+    render(<UxTable columns={sortableColumns} data={data} rowKey="key" />);
 
-    const headerCell = screen.getByTestId('ux-table-header-cell-0');
-    const sortIcon = screen.getByTestId('ux-table-sorter-0');
+    const headerCell = screen.getByTestId('ux-table-header-cell-1');
+    const sortIcon = screen.getByTestId('ux-table-sorter-1');
 
     // Clicking header cell shouldn't sort (order should remain original: John Doe first)
     await user.click(headerCell);
-    expect(screen.getByTestId('ux-table-cell-0-0')).toHaveTextContent('John Doe');
+    expect(screen.getByTestId('ux-table-cell-0-1')).toHaveTextContent('John Doe');
 
     // Clicking sort icon should sort (Ascending: Jane Doe first)
     await user.click(sortIcon);
-    expect(screen.getByTestId('ux-table-cell-0-0')).toHaveTextContent('Jane Doe');
+    expect(screen.getByTestId('ux-table-cell-0-1')).toHaveTextContent('Jane Doe');
   });
 
-  it('提供 infinite 属性时扩充行和列', () => {
+  it('当提供 infinite 属性时扩充行和列', () => {
     const infinite = { row: 5, col: 5, gap: 2 };
 
     // We start with 2 data rows. Target rows = 2.
@@ -211,7 +210,7 @@ describe('UxTable 组件', () => {
     // Render 1: count=2, lastRowIndex=1. 1 + 2 >= 1 -> expands by 5.
     // Render 2: count=7, lastRowIndex=4. 4 + 2 >= 6 -> expands by 5.
     // Render 3: count=12, lastRowIndex=4. 4 + 2 >= 11 -> stops expanding.
-    // Target columns: initial is 2 + lineShow = 3.
+    // Target columns: initial is 2 + line number = 3.
     // Render 1: count=3, lastColIndex=2. 2 + 2 >= 2 -> expands by 5.
     // Render 2: count=8, lastColIndex=4. 4 + 2 >= 7 -> stops expanding.
 
@@ -219,7 +218,7 @@ describe('UxTable 组件', () => {
 
     // Check if new columns are added (since count=8, but renderCount=5)
     // The columns are named by index + 1 (e.g. '4', '5' because indices are 3, 4)
-    // Column indices: 0(lineShow), 1(Name), 2(Age), 3(4), 4(5)
+    // Column indices: 0(line num), 1(Name), 2(Age), 3(4), 4(5)
     expect(screen.getByTestId('ux-table-header-cell-3')).toHaveTextContent('4');
     expect(screen.getByTestId('ux-table-header-cell-4')).toHaveTextContent('5');
   });
@@ -262,7 +261,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
 
       // Select the entire column by clicking header
       const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
@@ -294,7 +293,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
 
       // Select the entire row using line number cell
       const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
@@ -384,7 +383,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      const { rerender } = render(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      const { rerender } = render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
 
       const cell00 = screen.getByTestId('ux-table-cell-0-0');
       await user.click(cell00);
@@ -399,7 +398,7 @@ describe('UxTable 组件', () => {
 
       // 修改 mock 允许复制
       beforeCopy.mockResolvedValue(true);
-      rerender(<UxTable columns={columns} data={data} rowKey="key" lineShow={false} isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      rerender(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
 
       // 需要重新选中单元格，因为复制操作清空了选区
       await user.click(cell00);
@@ -423,7 +422,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
 
       // Select the entire column by clicking header
       const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
@@ -448,7 +447,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key" lineShow={true} isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
 
       const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
       await user.click(lineNumCell);
@@ -599,7 +598,7 @@ describe('UxTable 组件', () => {
           columns={columns}
           data={data}
           rowKey="key"
-          lineShow={false}
+          
           onDataChange={onDataChange}
           isWorker={false}
           beforePaste={beforePaste}
@@ -635,7 +634,7 @@ describe('UxTable 组件', () => {
           columns={columns}
           data={data}
           rowKey="key"
-          lineShow={false}
+          
           onDataChange={onDataChange}
           isWorker={false}
           beforePaste={beforePaste}

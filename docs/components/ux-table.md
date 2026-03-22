@@ -60,7 +60,6 @@ export default () => {
 | `onDataChange` | 数据发生变化时的回调 (例如编辑单元格后、粘贴后、撤销恢复后) | `(newData: DataSource) => void` | - |
 | `gridConfig` | 网格配置，如果指定了 rows 和 cols，即使 data 和 columns 不足也会补齐空单元格，类似 Excel 画布 | `{ rows: number; cols: number; }` | - |
 | `infinite` | 无限滚动配置，在 x 轴和 y 轴快要滚动到尽头时（间隔 gap 距离），自动扩充表格的行列 | `{ row: number; col: number; gap: number; headerText?: (index: number) => string; }` | - |
-| `lineShow` | 是否显示最左侧默认行号列 | `boolean` | `true` |
 | `isWorker` | 是否开启 Web Worker 进行耗时任务处理 (例如大数据量的复制和粘贴) | `boolean` | `true` |
 | `recordNum` | 记录多少次操作历史，用于 ctrl+z/ctrl+y 撤销重做功能。最大上限为 20 次 | `number` | `5` |
 | `beforeCopy` | 复制前触发，返回 false 或 Promise 可以阻止默认的复制行为 | `(params: { selectedData: any[]; columns: UxTableColumn[] }) => boolean \| void \| Promise&lt;boolean \| void&gt;` | - |

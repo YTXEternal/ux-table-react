@@ -128,7 +128,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         onDataChange,
         gridConfig,
         ref,
-        lineShow = true,
         infinite,
         isWorker = true,
         recordNum = 5,
@@ -169,19 +168,17 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const { finalColumns, finalData } = useMemo(() => {
         let columns = [...propColumns];
 
-        // 如果开启 lineShow，在最前面插入行号列
-        if (lineShow) {
-            columns.unshift({
-                title: '行',
-                dataIndex: '_line_number_' as keyof DataSource[number],
-                key: '_line_number_',
-                width: 50,
-                fixed: 'left',
-                editable: false,
-                resizable: false,
-                render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#bfbfbf', userSelect: 'none', width: '100%' }}>{index + 1}</div>
-            } as unknown as UxTableColumn<DataSource[number]>);
-        }
+        // 在最前面插入行号列
+        columns.unshift({
+            title: '行',
+            dataIndex: '_line_number_' as keyof DataSource[number],
+            key: '_line_number_',
+            width: 50,
+            fixed: 'left',
+            editable: false,
+            resizable: false,
+            render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#bfbfbf', userSelect: 'none', width: '100%' }}>{index + 1}</div>
+        } as unknown as UxTableColumn<DataSource[number]>);
 
         let targetRows = propData.length;
         let targetCols = columns.length;
@@ -203,7 +200,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const data = fillGridData(propData, columns, targetRows, rowKey);
 
         return { finalColumns: columns, finalData: data };
-    }, [propColumns, propData, gridConfig, rowKey, lineShow, infinite, expandedRows, expandedCols]);
+    }, [propColumns, propData, gridConfig, rowKey, infinite, expandedRows, expandedCols]);
 
     // Hooks
     const { columns, handleResizeMouseDown } = useResizing(finalColumns);
@@ -566,8 +563,14 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const maxRow = Math.max(selection.start.row, selection.end.row);
         const r1 = Math.max(0, minRow);
         const r2 = Math.max(0, maxRow);
-        const c1 = Math.min(selection.start.col, selection.end.col);
+        let c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
+
+        // 如果选区包含了行号列，则将其排除
+        if (columns[c1]?.key === '_line_number_') {
+            c1 += 1;
+        }
+        if (c1 > c2) return; // 如果仅选中了行号列，不执行复制
 
         const selectedData = sortedData.slice(r1, r2 + 1) as DataSource[number][];
         const selectedColumns = columns.slice(c1, c2 + 1);
@@ -611,8 +614,14 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const maxRow = Math.max(selection.start.row, selection.end.row);
         const r1 = Math.max(0, minRow);
         const r2 = Math.max(0, maxRow);
-        const c1 = Math.min(selection.start.col, selection.end.col);
+        let c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
+
+        // 如果选区包含了行号列，则将其排除
+        if (columns[c1]?.key === '_line_number_') {
+            c1 += 1;
+        }
+        if (c1 > c2) return; // 如果仅选中了行号列，不执行剪切
 
         setCutBounds({ top: minRow, bottom: maxRow, left: c1, right: c2 });
         setCopiedBounds(null); // 互斥
@@ -684,7 +693,13 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         if (!text) return; // 卫语句：无粘贴内容时返回
 
         const startRow = Math.max(0, Math.min(selection.start.row, selection.end.row));
-        const startCol = Math.min(selection.start.col, selection.end.col);
+        let startCol = Math.min(selection.start.col, selection.end.col);
+
+        // 如果选区起始列为行号列，将其向右偏移一位，以便粘贴到实际数据列中
+        if (columns[startCol]?.key === '_line_number_') {
+            startCol += 1;
+        }
+        if (startCol >= columns.length) return; // 防止越界
 
         if (beforePaste) {
             const allowPaste = await beforePaste({ text, startRow, startCol });
