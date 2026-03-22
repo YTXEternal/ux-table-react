@@ -562,8 +562,10 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         if (!selection) return; // 卫语句：防止无选区时复制
         // 复制的时候需要吧之前选中的实线区域清空
         setSelection(null);
-        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
-        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
+        const minRow = Math.min(selection.start.row, selection.end.row);
+        const maxRow = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, minRow);
+        const r2 = Math.max(0, maxRow);
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
@@ -575,7 +577,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             if (allowCopy === false) return; // 卫语句：外部阻止复制
         }
 
-        setCopiedBounds({ top: r1, bottom: r2, left: c1, right: c2 });
+        setCopiedBounds({ top: minRow, bottom: maxRow, left: c1, right: c2 });
         setCutBounds(null); // 互斥
 
         const sanitizedColumns = selectedColumns.map(col => ({
@@ -605,12 +607,14 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCut = async () => {
         if (!selection) return; // 卫语句：防止无选区时剪切
-        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
-        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
+        const minRow = Math.min(selection.start.row, selection.end.row);
+        const maxRow = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, minRow);
+        const r2 = Math.max(0, maxRow);
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
-        setCutBounds({ top: r1, bottom: r2, left: c1, right: c2 });
+        setCutBounds({ top: minRow, bottom: maxRow, left: c1, right: c2 });
         setCopiedBounds(null); // 互斥
 
         const selectedData = sortedData.slice(r1, r2 + 1) as Record<string, unknown>[];
@@ -805,6 +809,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             index >= cutBounds.left && index <= cutBounds.right;
 
         const isAntsTop = !!((isCopied && copiedBounds.top === -1) || (isCut && cutBounds.top === -1));
+        // 表头始终是区域的最上方，只有当仅复制表头时才有 bottom（当前逻辑不允许仅复制表头，所以 bottom 为 false）
+        // 但是为了组件的完整性，这里还是计算一下
+        const isAntsBottom = !!((isCopied && copiedBounds.bottom === -1) || (isCut && cutBounds.bottom === -1));
+        const isAntsLeft = !!((isCopied && index === copiedBounds.left) || (isCut && index === cutBounds.left));
+        const isAntsRight = !!((isCopied && index === copiedBounds.right) || (isCut && index === cutBounds.right));
 
         return (
             <HeaderCell
@@ -821,6 +830,9 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 isSelectionLeft={isSelectionLeft}
                 isSelectionRight={isSelectionRight}
                 isAntsTop={isAntsTop}
+                isAntsBottom={isAntsBottom}
+                isAntsLeft={isAntsLeft}
+                isAntsRight={isAntsRight}
                 dataLength={sortedData.length}
                 handleColHeaderMouseDown={handleColHeaderMouseDown}
                 handleColHeaderMouseEnter={handleColHeaderMouseEnter}
