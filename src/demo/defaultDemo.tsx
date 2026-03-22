@@ -90,7 +90,6 @@ function DefaultDemo() {
                         gridConfig={{ rows: isPerfTest ? 900 : 20, cols: isPerfTest ? 900 : 20 }}
                         infinite={{ row: 10, col: 5, gap: 5 }}
                         style={{ height: '100%' }}
-                        lineShow={true}
                         recordNum={10}
                         isWorker={window.location.search.includes('isWorker=false') ? false : true}
                     />

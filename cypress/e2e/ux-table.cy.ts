@@ -6,13 +6,13 @@ describe('UxTable 组件', () => {
     it('应该支持拖拽选中多个单元格', () => {
       // 触发 mousedown
       cy.get('[data-testid="ux-table-cell-0-1"]').trigger('mousedown', { force: true });
-      
+
       // 触发 mouseenter 到另一个单元格以扩展选区
       cy.get('[data-testid="ux-table-cell-1-2"]').trigger('mouseenter', { force: true });
-      
+
       // 释放鼠标
       cy.get('[data-testid="ux-table-cell-1-2"]').trigger('mouseup', { force: true });
-      
+
       // 验证选区内的单元格具有正确的背景色
       cy.get('[data-testid="ux-table-cell-0-1"]').should('have.css', 'background-color').and('include', 'rgb(255, 255, 255)'); // Active cell
       cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)'); // Selected
@@ -31,7 +31,7 @@ describe('UxTable 组件', () => {
       // We need to re-select to test escape
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
       cy.get('[data-testid="ux-table-cell-0-2"]').click({ force: true, ctrlKey: true }); // Maybe shift click? No, drag.
-      
+
       cy.get('[data-testid="ux-table-cell-0-1"]').trigger('mousedown', { force: true });
       cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseenter', { force: true });
       cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseup', { force: true });
@@ -85,7 +85,7 @@ describe('UxTable 组件', () => {
   describe('粘贴和删除操作测试', () => {
     it('应该支持粘贴数据并更新表格', () => {
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      
+
       // 构造要粘贴的文本 (TSV 格式)
       const pasteText = 'Pasted 1\tPasted 2\nPasted 3\tPasted 4';
 
@@ -109,10 +109,10 @@ describe('UxTable 组件', () => {
     it('应该支持按 Delete 键删除选区内容', () => {
       // 选中单元格
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      
+
       // 按下 Delete
       cy.get('body').type('{del}');
-      
+
       // 验证数据被清空 (等待 Worker 降级执行)
       cy.wait(100);
       // 空单元格应该不包含原来的文本
@@ -148,7 +148,7 @@ describe('UxTable 组件', () => {
       // 检查左侧固定列（固定列）的 sticky 样式
       cy.get('[data-testid="ux-table-header-cell-0"]').should('have.css', 'position', 'sticky');
       cy.get('[data-testid="ux-table-header-cell-0"]').should('have.css', 'left', '0px');
-      
+
       // 第二列应该是非固定列
       cy.get('[data-testid="ux-table-header-cell-1"]').should('have.css', 'position', 'absolute');
     });
@@ -158,24 +158,24 @@ describe('UxTable 组件', () => {
     it('当滚动到底部时应该扩充行和列', () => {
       // 获取表格主体容器
       cy.get('[data-testid="ux-table-header-row"]').parent().parent().as('tableMain');
-      
+
       // 初始渲染应该只有部分行（根据虚拟列表和初始配置）
       // App.tsx 中的 gridConfig 是 20x20，infinite 是 {row:10, col:5, gap:5}
       // 我们先检查是否能找到第 19 行（初始 gridConfig 的最后一行），应该找不到因为被虚拟列表隐藏
       // 然后我们滚动到底部，应该能触发扩充
-      
+
       cy.get('@tableMain').scrollTo('bottom');
       // 等待扩充和虚拟列表更新
       cy.wait(500);
-      
+
       // 滚动到底部后，应该扩充了 10 行，所以总行数至少是 30，索引为 29 的行应该被渲染出来
       cy.get('[data-testid="ux-table-row-29"]').should('exist');
-      
+
       // 测试横向滚动
       // 横向滚动应该使用底部的滚动条
       cy.get('[class*="ux-table-scrollbar-x"]').scrollTo('right');
       cy.wait(500);
-      
+
       // 初始列是 20，扩充了 5 列，所以索引 24 的列应该存在
       cy.get('[data-testid="ux-table-header-cell-24"]').should('exist');
     });
@@ -203,7 +203,7 @@ describe('UxTable 组件', () => {
     it('单击单元格时应该正确选中并聚焦', () => {
       // 单击第一个单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
-      
+
       // 检查是否具有活动选中状态的 box-shadow
       cy.get('[data-testid="ux-table-cell-0-0"]')
         .should('have.css', 'box-shadow')
@@ -213,7 +213,7 @@ describe('UxTable 组件', () => {
     it('单击表头应该选中整列', () => {
       // 单击第一列数据列的表头 (第1列，因为第0列是行号)
       cy.get('[data-testid="ux-table-header-cell-1"]').click();
-      
+
       // 第0行和第1行应该是选中状态 (背景色应变为 #e6f7ff，即 rgb(230, 247, 255))
       cy.get('[data-testid="ux-table-cell-0-1"]')
         .should('have.css', 'background-color')
@@ -226,7 +226,7 @@ describe('UxTable 组件', () => {
     it('单击行号应该选中整行', () => {
       // 单击第一行的行号单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
-      
+
       // 第0列是 active cell（背景为白），第1列（同行的其他列）应该是选中状态
       cy.get('[data-testid="ux-table-cell-0-0"]')
         .should('have.css', 'background-color')
@@ -241,7 +241,7 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-1"]').click();
       // 按下 Ctrl+A
       cy.get('body').type('{ctrl}a');
-      
+
       // 检查其他单元格是否被选中
       cy.get('[data-testid="ux-table-cell-1-2"]')
         .should('have.css', 'background-color')
@@ -251,18 +251,18 @@ describe('UxTable 组件', () => {
     it('应该支持键盘方向键导航', () => {
       // 点击第一个数据单元格使其聚焦
       cy.get('[data-testid="ux-table-cell-0-1"]').click();
-      
+
       // 按下向右箭头
       cy.get('body').type('{rightarrow}');
-      
+
       // 右侧相邻的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-0-2"]')
         .should('have.css', 'box-shadow')
         .and('include', 'rgb(24, 144, 255)');
-        
+
       // 按下向下箭头
       cy.get('body').type('{downarrow}');
-      
+
       // 下方的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-1-2"]')
         .should('have.css', 'box-shadow')
@@ -273,32 +273,32 @@ describe('UxTable 组件', () => {
   describe('编辑功能测试', () => {
     it('双击单元格应该进入编辑模式并允许保存值', () => {
       const newName = 'Edited Value';
-      
+
       // 双击第一个数据单元格
       // { force: true } 确保即使被 sticky 表头部分遮挡也能点击成功
       cy.get('[data-testid="ux-table-cell-0-1"]').dblclick({ force: true });
-      
+
       // 检查输入框是否存在并且处于焦点状态
       cy.get('[data-testid="ux-table-cell-0-1"] input').should('exist').and('have.focus');
-      
+
       // 输入新值并按下回车键
       cy.get('[data-testid="ux-table-cell-0-1"] input').clear({ force: true }).type(`${newName}{enter}`, { force: true });
-      
+
       // 检查单元格内的值是否已更新
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', newName);
-      
+
       // 输入框应该消失
       cy.get('[data-testid="ux-table-cell-0-1"] input').should('not.exist');
     });
 
     it('按下 Escape 键应该取消编辑并恢复原值', () => {
       const originalName = '数据 0-0';
-      
+
       // 双击数据单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').then(($el) => {
         const text = $el.text().trim();
         const testId = text === '1' ? 'ux-table-cell-0-1' : 'ux-table-cell-0-0';
-        
+
         cy.get(`[data-testid="${testId}"]`).dblclick({ force: true });
         cy.get(`[data-testid="${testId}"] input`).clear({ force: true }).type('Cancelled Edit{esc}', { force: true });
         cy.get(`[data-testid="${testId}"]`).should('contain.text', originalName);
@@ -309,10 +309,10 @@ describe('UxTable 组件', () => {
     it('聚焦状态下直接输入字母应该唤起编辑模式', () => {
       // 点击选中数据单元格
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      
+
       // 直接输入 'X'
       cy.get('body').type('X');
-      
+
       // 输入框应该出现并且值为 'X'
       cy.get('[data-testid="ux-table-cell-0-1"] input').should('have.value', 'X');
     });
@@ -323,14 +323,14 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-0"]').then(($el) => {
         const text = $el.text().trim();
         const colIndex = text === '1' ? 1 : 0;
-        
+
         cy.get(`[data-testid="ux-table-cell-0-${colIndex}"]`).invoke('text').then((initialText) => {
           cy.get(`[data-testid="ux-table-header-cell-${colIndex}"]`).click('left');
           cy.get(`[data-testid="ux-table-cell-0-${colIndex}"]`).should('contain.text', initialText);
-  
+
           cy.get(`[data-testid="ux-table-sorter-${colIndex}"]`).click({ force: true });
           cy.get(`[data-testid="ux-table-sorter-${colIndex}"]`).click({ force: true });
-          
+
           cy.get(`[data-testid="ux-table-cell-0-${colIndex}"]`).should('not.have.text', initialText);
         });
       });
@@ -341,7 +341,7 @@ describe('UxTable 组件', () => {
     it('复制单元格后应该显示蚂蚁线动画，并在操作后消失', () => {
       // 1. 选中数据单元格
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      
+
       // 2. 模拟按下 Ctrl+C
       cy.get('body').type('{ctrl}c');
 
@@ -368,24 +368,6 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-1"]')
         .find('div[class*="marching-ants"]')
         .should('not.exist');
-    });
-  });
-
-  describe.skip('列宽调整测试', () => {
-    it('拖拽调整手柄应该改变列宽', () => {
-      // 获取第一列的初始宽度
-      cy.get('[data-testid="ux-table-header-cell-0"]').invoke('width').then((initialWidth) => {
-        
-        // 在调整手柄上触发鼠标按下事件
-        cy.get('[data-testid="ux-table-resizer-0"]')
-          .trigger('mousedown', { button: 0, clientX: 100, clientY: 10, force: true })
-          .trigger('mousemove', { clientX: 150, clientY: 10, force: true })
-          .trigger('mouseup', { force: true });
-        
-        // 检查新宽度是否变大了
-        cy.wait(100);
-        cy.get('[data-testid="ux-table-header-cell-0"]').invoke('width').should('be.gt', initialWidth);
-      });
     });
   });
 });

@@ -94,10 +94,6 @@ export interface UxTableProps<DataSource extends unknown[]> {
     headerText?: (index: number) => string;
   };
   /**
-   * 是否显示行号，默认为 true
-   */
-  lineShow?: boolean;
-  /**
    * 是否开启 Web Worker 进行耗时任务处理，默认为 true
    */
   isWorker?: boolean;
