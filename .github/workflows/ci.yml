@@ -48,10 +48,9 @@ jobs:
           browser: chrome
           start: pnpm dev
           wait-on: "http://localhost:5173"
-          command: pnpm test:e2e:run
         env:
           CYPRESS_REPORTER: junit
-          CYPRESS_REPORTER_OPTIONS: "mochaFile=test-results/cypress/results-[hash].xml"
+          CYPRESS_REPORTER_OPTIONS: '{"mochaFile":"test-results/cypress/results-[hash].xml"}'
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
