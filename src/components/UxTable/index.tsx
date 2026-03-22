@@ -560,6 +560,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCopy = async () => {
         if (!selection) return; // 卫语句：防止无选区时复制
+        // 复制的时候需要吧之前选中的实线区域清空
+        setSelection(null);
         const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
         const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
         const c1 = Math.min(selection.start.col, selection.end.col);
