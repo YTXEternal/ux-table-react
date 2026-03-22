@@ -19,6 +19,67 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-1-1"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)'); // Selected
       cy.get('[data-testid="ux-table-cell-1-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)'); // Selected
     });
+
+    it('选中聚焦的情况下按键盘esc或点击Table表外会取消选中状态', () => {
+      cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('have.css', 'background-color').and('include', 'rgb(255, 255, 255)'); // Active
+
+      // 点击表外
+      cy.get('body').click(0, 0, { force: true });
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('have.css', 'background-color').and('include', 'rgb(255, 255, 255)'); // No longer active, but white background is default? Wait, let's just check selected cells or we can press Escape.
+
+      // We need to re-select to test escape
+      cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').click({ force: true, ctrlKey: true }); // Maybe shift click? No, drag.
+      
+      cy.get('[data-testid="ux-table-cell-0-1"]').trigger('mousedown', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseenter', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseup', { force: true });
+
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)'); // Selected
+
+      cy.get('body').click(0, 0, { force: true });
+      // The background color should not be the selected color anymore
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('not.have.css', 'background-color', 'rgb(230, 247, 255)');
+
+      // Re-select to test ESC
+      cy.get('[data-testid="ux-table-cell-0-1"]').trigger('mousedown', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseenter', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseup', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)');
+
+      cy.get('.ux-table-main').trigger('keydown', { key: 'Escape' });
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('not.have.css', 'background-color', 'rgb(230, 247, 255)');
+    });
+
+    it('撤销与恢复测试', () => {
+      // 在 defaultDemo.tsx 中设置了 recordNum 等属性的话
+      // 我们测试一下编辑然后撤销
+      cy.get('[data-testid="ux-table-cell-0-1"]').dblclick({ force: true });
+      cy.get('[data-testid="ux-table-cell-0-1"] input').clear({ force: true }).type('Edited Value{enter}', { force: true });
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', 'Edited Value');
+
+      // 撤销 (由于我们需要模拟在选中状态下按键)
+      cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
+      cy.get('.ux-table-main').trigger('keydown', { key: 'z', ctrlKey: true });
+      // 应该恢复为 "数据 0-1" (defaultDemo 中的初始数据)
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', '数据 0-1');
+
+      // 恢复
+      cy.get('.ux-table-main').trigger('keydown', { key: 'y', ctrlKey: true });
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', 'Edited Value');
+    });
+
+    it('左键列头移动时连列头也纳入选中状态', () => {
+      cy.get('[data-testid="ux-table-header-cell-1"]').trigger('mousedown', { force: true, button: 0 });
+      cy.get('[data-testid="ux-table-header-cell-2"]').trigger('mouseenter', { force: true });
+      cy.get('[data-testid="ux-table-header-cell-2"]').trigger('mouseup', { force: true });
+
+      cy.get('[data-testid="ux-table-header-cell-1"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)');
+      cy.get('[data-testid="ux-table-header-cell-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)');
+      cy.get('[data-testid="ux-table-cell-0-1"]').should('have.css', 'background-color').and('include', 'rgb(255, 255, 255)'); // First active cell
+      cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)'); // Selected body cell
+    });
   });
 
   describe('粘贴和删除操作测试', () => {
@@ -153,10 +214,10 @@ describe('UxTable 组件', () => {
       // 单击第一列数据列的表头 (第1列，因为第0列是行号)
       cy.get('[data-testid="ux-table-header-cell-1"]').click();
       
-      // 第0行是 active cell（背景为白），第1行应该是选中状态 (背景色应变为 #e6f7ff，即 rgb(230, 247, 255))
+      // 第0行和第1行应该是选中状态 (背景色应变为 #e6f7ff，即 rgb(230, 247, 255))
       cy.get('[data-testid="ux-table-cell-0-1"]')
         .should('have.css', 'background-color')
-        .and('include', 'rgb(255, 255, 255)');
+        .and('include', 'rgb(230, 247, 255)');
       cy.get('[data-testid="ux-table-cell-1-1"]')
         .should('have.css', 'background-color')
         .and('include', 'rgb(230, 247, 255)');

@@ -30,6 +30,14 @@ export interface HeaderCellProps<RecordType> {
     handleColHeaderMouseEnter: (index: number, dataLength: number) => void;
     /** 点击排序指示器时的回调函数 */
     handleSort: (index: number) => void;
+    /** 是否被选中（用于多列或列头选择） */
+    isSelected?: boolean;
+    /** 是否为选中区域的左边界 */
+    isSelectionLeft?: boolean;
+    /** 是否为选中区域的右边界 */
+    isSelectionRight?: boolean;
+    /** 顶部是否为蚂蚁线（正在复制/剪切） */
+    isAntsTop?: boolean;
     /** 鼠标按下调整列宽手柄时的回调函数 */
     handleResizeMouseDown: (e: React.MouseEvent, index: number) => void;
 }

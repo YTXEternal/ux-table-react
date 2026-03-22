@@ -19,6 +19,10 @@ const HeaderCellInner = <RecordType,>({
     sortOrder,
     isSorted,
     dataLength,
+    isSelected,
+    isSelectionLeft,
+    isSelectionRight,
+    isAntsTop,
     handleColHeaderMouseDown,
     handleColHeaderMouseEnter,
     handleSort,
@@ -35,8 +39,17 @@ const HeaderCellInner = <RecordType,>({
         styles['ux-table-header-cell'],
         isFixed ? styles['ux-table-cell-fixed'] : styles['ux-table-cell-absolute'],
         offset?.isLastLeft ? styles['ux-table-shadow-left'] : '',
-        offset?.isFirstRight ? styles['ux-table-shadow-right'] : ''
+        offset?.isFirstRight ? styles['ux-table-shadow-right'] : '',
+        isSelected ? styles['ux-table-cell-selected'] : '',
+        isSelected ? styles['ux-table-selection-border'] : ''
     ].filter(Boolean).join(' ');
+
+    const borderVars = {} as React.CSSProperties & Record<string, string>;
+    if (isSelected) {
+        if (!isAntsTop) borderVars['--sel-top'] = '2px';
+        if (isSelectionLeft) borderVars['--sel-left'] = '2px';
+        if (isSelectionRight) borderVars['--sel-right'] = '-2px';
+    }
 
     return (
         <div
@@ -51,9 +64,13 @@ const HeaderCellInner = <RecordType,>({
                 transform: isFixed ? undefined : `translateX(${virtualStart}px)`,
                 width: `${virtualSize}px`,
                 height: '100%',
-                zIndex: isFixed ? 4 : 3
+                zIndex: isFixed ? 4 : 3,
+                ...borderVars
             }}
         >
+            {/* 渲染复制/剪切操作时的蚂蚁线效果 */}
+            {isAntsTop && <div className={styles['marching-ants-top']} />}
+
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {column.title as React.ReactNode}
             </span>
@@ -107,6 +124,10 @@ export const HeaderCell = memo(HeaderCellInner, (prevProps, nextProps) => {
         prevProps.offset?.isFirstRight === nextProps.offset?.isFirstRight &&
         prevProps.sortOrder === nextProps.sortOrder &&
         prevProps.isSorted === nextProps.isSorted &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isSelectionLeft === nextProps.isSelectionLeft &&
+        prevProps.isSelectionRight === nextProps.isSelectionRight &&
+        prevProps.isAntsTop === nextProps.isAntsTop &&
         prevProps.dataLength === nextProps.dataLength &&
         prevProps.column.title === nextProps.column.title &&
         prevProps.column.width === nextProps.column.width &&

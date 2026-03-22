@@ -63,15 +63,15 @@ const BodyCellInner = <RecordType,>({
      */
     const borderVars = {} as React.CSSProperties & Record<string, string>;
     if (isSelected || isActive) {
-        if (isSelected && selectionBounds?.top === rowIndex) borderVars['--sel-top'] = '2px';
-        if (isSelected && selectionBounds?.bottom === rowIndex) borderVars['--sel-bottom'] = '-2px';
-        if (isSelected && selectionBounds?.left === colIndex) borderVars['--sel-left'] = '2px';
-        if (isSelected && selectionBounds?.right === colIndex) borderVars['--sel-right'] = '-2px';
+        if (isSelected && selectionBounds?.top === rowIndex && !isAntsTop) borderVars['--sel-top'] = '2px';
+        if (isSelected && selectionBounds?.bottom === rowIndex && !isAntsBottom) borderVars['--sel-bottom'] = '-2px';
+        if (isSelected && selectionBounds?.left === colIndex && !isAntsLeft) borderVars['--sel-left'] = '2px';
+        if (isSelected && selectionBounds?.right === colIndex && !isAntsRight) borderVars['--sel-right'] = '-2px';
         if (isActive && (!selectionBounds || (selectionBounds.top === selectionBounds.bottom && selectionBounds.left === selectionBounds.right))) {
-            borderVars['--sel-top'] = '2px';
-            borderVars['--sel-bottom'] = '-2px';
-            borderVars['--sel-left'] = '2px';
-            borderVars['--sel-right'] = '-2px';
+            if (!isAntsTop) borderVars['--sel-top'] = '2px';
+            if (!isAntsBottom) borderVars['--sel-bottom'] = '-2px';
+            if (!isAntsLeft) borderVars['--sel-left'] = '2px';
+            if (!isAntsRight) borderVars['--sel-right'] = '-2px';
         }
     }
 

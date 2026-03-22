@@ -33,10 +33,22 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>): 
                 cancelAnimationFrame(rafId.current);
                 rafId.current = null;
             }
-        }
+        };
+
+        // 点击表格外部取消选中状态
+        const handleGlobalMouseDown = (e: MouseEvent) => {
+            if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
+                setSelection(null);
+            }
+        };
+
         window.addEventListener('mouseup', handleGlobalMouseUp);
-        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-    }, [setIsSelecting]);
+        window.addEventListener('mousedown', handleGlobalMouseDown);
+        return () => {
+            window.removeEventListener('mouseup', handleGlobalMouseUp);
+            window.removeEventListener('mousedown', handleGlobalMouseDown);
+        };
+    }, [setIsSelecting, tableRef]);
 
     /**
      * 处理单元格的鼠标按下事件（开始框选或单选）
@@ -119,7 +131,7 @@ export const useSelection = (tableRef: React.RefObject<HTMLDivElement | null>): 
         if (e.button !== 0) return; // 仅响应鼠标左键点击
         setIsSelecting(true);
         setSelection({
-            start: { row: 0, col: colIndex },
+            start: { row: -1, col: colIndex },
             end: { row: Math.max(0, rowCount - 1), col: colIndex }
         });
         tableRef.current?.focus();

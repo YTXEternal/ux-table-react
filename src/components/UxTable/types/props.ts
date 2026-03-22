@@ -86,9 +86,9 @@ export interface UxTableProps<DataSource extends unknown[]> {
   /**
    * 无限滚动配置，在x轴和y轴快要滚动到尽头时（间隔gap列/行的距离），根据row和col扩充表格的行列
    */
-  infinite?: { 
-    row: number; 
-    col: number; 
+  infinite?: {
+    row: number;
+    col: number;
     gap: number;
     /** 格式化扩充列的表头文本，默认使用当前列索引 + 1 */
     headerText?: (index: number) => string;
@@ -123,4 +123,8 @@ export interface UxTableProps<DataSource extends unknown[]> {
    * @param params 包含粘贴的文本内容、更新后的完整数据、以及粘贴区域的起始和最大行列索引
    */
   afterPaste?: (params: { text: string; newData: DataSource; startRow: number; startCol: number; maxRowIdx: number; maxColIdx: number }) => void;
+  /**
+   * 记录多少次操作记录，用于撤销/恢复功能。默认为 5 次。最大上限为 20 次。
+   */
+  recordNum?: number;
 }

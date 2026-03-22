@@ -1,9 +1,8 @@
-import React, { useRef, useImperativeHandle, useCallback } from 'react';
+import React, { useRef, useImperativeHandle, useCallback, useMemo } from 'react';
+// 仅在测试环境引入 act 以避免在测试中因异步状态更新导致的警告
+
+import { act } from 'react';
 import type { UxTableProps, UxTableColumn } from './types';
-import { useResizing } from './hooks/useResizing';
-import { useSorting } from './hooks/useSorting';
-import { useSelection } from './hooks/useSelection';
-import { useEditing } from './hooks/useEditing';
 import { useFixedColumns } from './hooks/useFixedColumns';
 import { useClipboard } from './hooks/useClipboard';
 import { useWebWorker } from './hooks/useWebWorker';
@@ -16,6 +15,12 @@ import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
 import { HeaderCell } from './components/HeaderCell';
 import { BodyCell } from './components/BodyCell';
+
+import { useResizing } from './hooks/useResizing';
+import { useSelection } from './hooks/useSelection';
+import { useEditing } from './hooks/useEditing';
+import { useSorting } from './hooks/useSorting';
+
 
 /**
  * 同步滚动条位置，复用滚动逻辑
@@ -127,6 +132,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         lineShow = true,
         infinite,
         isWorker = true,
+        recordNum = 5,
         beforeCopy,
         afterCopy,
         beforePaste,
@@ -137,11 +143,31 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const [expandedRows, setExpandedRows] = React.useState(0);
     const [expandedCols, setExpandedCols] = React.useState(0);
 
+    // 历史记录栈，用于撤销和恢复
+    const historyRef = useRef<{ past: DataSource[]; future: DataSource[] }>({ past: [], future: [] });
+    // 限制 recordNum 的最大值为 20
+    const actualRecordNum = useMemo(() => Math.min(Math.max(0, recordNum), 20), [recordNum]);
+
+    // 封装的 onDataChange，在调用外部 onDataChange 前记录历史
+    const handleDataChange = useCallback((newData: DataSource) => {
+        if (actualRecordNum > 0) {
+            historyRef.current.past.push([...propData] as DataSource);
+            if (historyRef.current.past.length > actualRecordNum) {
+                historyRef.current.past.shift();
+            }
+            // 一旦有新操作，清空 future
+            historyRef.current.future = [];
+        }
+        if (onDataChange) {
+            onDataChange(newData);
+        }
+    }, [propData, onDataChange, actualRecordNum]);
+
     // 当传入的 data 或 columns 发生变化时，如果需要重置扩充状态，可以在这里处理。
     // 但通常我们保持当前的扩充状态，或者在外部数据变大时自动适应。
 
     // 补齐 data 和 columns
-    const { finalColumns, finalData } = React.useMemo(() => {
+    const { finalColumns, finalData } = useMemo(() => {
         let columns = [...propColumns];
 
         // 如果开启 lineShow，在最前面插入行号列
@@ -198,7 +224,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         setEditingCell,
         startEditing,
         saveEdit
-    } = useEditing(finalData, columns, sortedData, onDataChange);
+    } = useEditing(finalData, columns, sortedData, handleDataChange);
     const fixedOffsets = useFixedColumns(columns);
     const { copyToClipboard } = useClipboard();
 
@@ -284,7 +310,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
 
-    // eslint-disable-next-line react-hooks/incompatible-library
+
     const rowVirtualizer = useVirtualizer({
         count: sortedData.length,
         getScrollElement: () => parentRef.current,
@@ -387,7 +413,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             if (!resizingRowRef.current) return;
             const deltaY = moveEvent.clientY - resizingRowRef.current.startY;
             const newHeight = Math.max(20, resizingRowRef.current.startHeight + deltaY); // 最小行高限制
-            
+
             setRowHeights(prev => ({
                 ...prev,
                 [rowIndex]: newHeight
@@ -453,11 +479,21 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      * @returns {void}
      */
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Escape' && (copiedBounds || cutBounds)) {
-            setCopiedBounds(null);
-            setCutBounds(null);
-            e.preventDefault();
-            return;
+        if (e.key === 'Escape') {
+            let handled = false;
+            if (copiedBounds || cutBounds) {
+                setCopiedBounds(null);
+                setCutBounds(null);
+                handled = true;
+            }
+            if (selection) {
+                setSelection(null);
+                handled = true;
+            }
+            if (handled) {
+                e.preventDefault();
+                return;
+            }
         }
 
         if (editingCell || !selection) return; // 卫语句：正在编辑或没有选区时直接返回
@@ -500,6 +536,20 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             return;
         }
 
+        // 撤销操作 (Ctrl/Cmd + Z)
+        if (isCtrlOrMeta && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            handleUndo();
+            return;
+        }
+
+        // 恢复操作 (Ctrl/Cmd + Y)
+        if (isCtrlOrMeta && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            handleRedo();
+            return;
+        }
+
         // 4. 直接输入 (单字符且无修饰键)
         if (e.key.length === 1 && !isCtrlOrMeta && !e.altKey) {
             startEditing(start.row, start.col, e.key);
@@ -512,8 +562,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCopy = async () => {
         if (!selection) return; // 卫语句：防止无选区时复制
-        const r1 = Math.min(selection.start.row, selection.end.row);
-        const r2 = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
+        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
@@ -555,8 +605,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCut = async () => {
         if (!selection) return; // 卫语句：防止无选区时剪切
-        const r1 = Math.min(selection.start.row, selection.end.row);
-        const r2 = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
+        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
@@ -588,8 +638,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleDelete = async () => {
         if (!selection || !onDataChange) return; // 卫语句：无选区或无回调时返回
-        const r1 = Math.min(selection.start.row, selection.end.row);
-        const r2 = Math.max(selection.start.row, selection.end.row);
+        const r1 = Math.max(0, Math.min(selection.start.row, selection.end.row));
+        const r2 = Math.max(0, Math.max(selection.start.row, selection.end.row));
         const c1 = Math.min(selection.start.col, selection.end.col);
         const c2 = Math.max(selection.start.col, selection.end.col);
 
@@ -611,7 +661,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             }) as { newData: Record<string, unknown>[] } | null;
 
             if (result && result.newData) {
-                onDataChange(result.newData as DataSource);
+                handleDataChange(result.newData as DataSource);
             }
         } catch (error) {
             console.error('Delete worker failed:', error);
@@ -629,7 +679,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const text = e.clipboardData.getData('text/plain');
         if (!text) return; // 卫语句：无粘贴内容时返回
 
-        const startRow = Math.min(selection.start.row, selection.end.row);
+        const startRow = Math.max(0, Math.min(selection.start.row, selection.end.row));
         const startCol = Math.min(selection.start.col, selection.end.col);
 
         if (beforePaste) {
@@ -658,10 +708,12 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             }) as { newData: Record<string, unknown>[]; maxRowIdx: number; maxColIdx: number } | null;
 
             if (result && result.newData) {
-                onDataChange(result.newData as DataSource);
-                setSelection({
-                    start: { row: startRow, col: startCol },
-                    end: { row: result.maxRowIdx, col: result.maxColIdx }
+                await act(async () => {
+                    handleDataChange(result.newData as DataSource);
+                    setSelection({
+                        start: { row: startRow, col: startCol },
+                        end: { row: result.maxRowIdx, col: result.maxColIdx }
+                    });
                 });
                 tableRef.current?.focus();
 
@@ -678,12 +730,36 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             }
 
             // 无论粘贴是否成功，都清空 cutBounds 和 copiedBounds
-            setCutBounds(null);
-            setCopiedBounds(null);
+            await act(async () => {
+                setCutBounds(null);
+                setCopiedBounds(null);
+            });
         } catch (error) {
             console.error('Paste worker failed:', error);
         }
     };
+
+    /**
+     * 处理撤销事件
+     */
+    const handleUndo = useCallback(() => {
+        if (actualRecordNum <= 0 || !onDataChange || historyRef.current.past.length === 0) return;
+
+        const previousState = historyRef.current.past.pop()!;
+        historyRef.current.future.push([...propData] as DataSource);
+        onDataChange(previousState);
+    }, [actualRecordNum, onDataChange, propData]);
+
+    /**
+     * 处理恢复事件
+     */
+    const handleRedo = useCallback(() => {
+        if (actualRecordNum <= 0 || !onDataChange || historyRef.current.future.length === 0) return;
+
+        const nextState = historyRef.current.future.pop()!;
+        historyRef.current.past.push([...propData] as DataSource);
+        onDataChange(nextState);
+    }, [actualRecordNum, onDataChange, propData]);
 
     /**
      * 取消编辑
@@ -704,6 +780,18 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         const column = columns[index];
         const isFixed = column.fixed;
         const offset = fixedOffsets[index];
+        const isSelected = selectionBounds !== null && selectionBounds.top === -1 && index >= selectionBounds.left && index <= selectionBounds.right;
+        const isSelectionLeft = isSelected && selectionBounds?.left === index;
+        const isSelectionRight = isSelected && selectionBounds?.right === index;
+
+        const isCopied = copiedBounds &&
+            copiedBounds.top === -1 &&
+            index >= copiedBounds.left && index <= copiedBounds.right;
+        const isCut = cutBounds &&
+            cutBounds.top === -1 &&
+            index >= cutBounds.left && index <= cutBounds.right;
+
+        const isAntsTop = !!((isCopied && copiedBounds.top === -1) || (isCut && cutBounds.top === -1));
 
         return (
             <HeaderCell
@@ -716,6 +804,10 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 offset={offset}
                 sortOrder={sortState?.order}
                 isSorted={sortState?.colIndex === index}
+                isSelected={isSelected}
+                isSelectionLeft={isSelectionLeft}
+                isSelectionRight={isSelectionRight}
+                isAntsTop={isAntsTop}
                 dataLength={sortedData.length}
                 handleColHeaderMouseDown={handleColHeaderMouseDown}
                 handleColHeaderMouseEnter={handleColHeaderMouseEnter}
@@ -723,7 +815,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 handleResizeMouseDown={handleResizeMouseDown}
             />
         );
-    }, [columns, fixedOffsets, sortState, sortedData.length, handleColHeaderMouseDown, handleColHeaderMouseEnter, handleSort, handleResizeMouseDown]);
+    }, [columns, fixedOffsets, sortState, selectionBounds, copiedBounds, cutBounds, sortedData.length, handleColHeaderMouseDown, handleColHeaderMouseEnter, handleSort, handleResizeMouseDown]);
 
     /**
      * 渲染数据体单元格

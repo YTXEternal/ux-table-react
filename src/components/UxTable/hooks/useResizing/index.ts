@@ -23,10 +23,25 @@ export const useResizing = <DataSource extends unknown[]>(
     // 当外部传入的列配置发生变化时，同步更新内部状态
     if (propColumns !== prevPropColumns) {
         setPrevPropColumns(propColumns);
-        setColumns(propColumns.map(col => ({
-            ...col,
-            width: typeof col.width === 'number' ? col.width : (col.width ? parseInt(col.width as string, 10) : undefined)
-        })));
+        setColumns(prevColumns => {
+            return propColumns.map((col, index) => {
+                // 尝试通过 key 或 dataIndex 找到之前已经存在的列
+                const existingCol = prevColumns.find(pc => 
+                    (pc.key && pc.key === col.key) || 
+                    (pc.dataIndex && pc.dataIndex === col.dataIndex)
+                ) || prevColumns[index];
+
+                // 如果用户调整过列宽，existingCol.width 就是被调整后的值
+                const currentWidth = existingCol?.width;
+                const propWidth = typeof col.width === 'number' ? col.width : (col.width ? parseInt(col.width as string, 10) : undefined);
+                
+                return {
+                    ...col,
+                    // 优先保留内部调整后的列宽，其次使用新传入的列宽
+                    width: currentWidth !== undefined ? currentWidth : propWidth
+                };
+            });
+        });
     }
 
     // 记录正在调整宽度的列索引
