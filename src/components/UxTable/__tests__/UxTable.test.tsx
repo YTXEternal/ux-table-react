@@ -154,13 +154,13 @@ describe('UxTable 组件', () => {
 
     const cell01 = screen.getByTestId('ux-table-cell-0-1');
     await user.click(cell01);
-    expect(cell01.className).toContain('ux-table-cell-selected');
+    expect(cell01.className).toContain('ux-table-selection-border');
 
     const outsideElement = screen.getByTestId('outside-element');
     await user.click(outsideElement);
 
     // After clicking outside, selection should be cleared
-    expect(cell01.className).not.toContain('ux-table-cell-selected');
+    expect(cell01.className).not.toContain('ux-table-selection-border');
   });
 
   it('点击行号单元格时选中整行', async () => {
@@ -242,7 +242,7 @@ describe('UxTable 组件', () => {
 
     // Select cell
     await user.click(cell01);
-    expect(cell01.className).toContain('ux-table-cell-selected');
+    expect(cell01.className).toContain('ux-table-selection-border');
 
     // Press Escape
     if (tableMain) {
@@ -250,7 +250,7 @@ describe('UxTable 组件', () => {
     }
 
     // Verify selection is gone
-    expect(cell01.className).not.toContain('ux-table-cell-selected');
+    expect(cell01.className).not.toContain('ux-table-selection-border');
   });
 
   describe('带蚂蚁线动画的复制功能', () => {
