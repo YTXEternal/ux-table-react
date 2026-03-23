@@ -25,7 +25,8 @@ export const processCopy = (
             rows.push(rowData.join('\t'));
         }
     }
-    return rows.join('\n');
+    const text = rows.join('\n');
+    return text ? text + '\n' : '';
 };
 
 /**
@@ -73,7 +74,10 @@ export const processDelete = (
  * @returns {string[][]} 解析后的二维字符串数组
  */
 export const processPasteParse = (text: string) => {
-    const rows = text.split(/\r\n|\n|\r/).filter((row: string) => row.length > 0);
+    if (!text) return [['']];
+    // 移除末尾的单个换行符（兼容 Excel 和 processCopy 的行为）
+    const normalizedText = text.replace(/(?:\r\n|\n|\r)$/, '');
+    const rows = normalizedText.split(/\r\n|\n|\r/);
     return rows.map((row: string) => row.split('\t'));
 };
 

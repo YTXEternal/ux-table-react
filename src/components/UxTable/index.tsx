@@ -620,7 +620,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 type: 'COPY',
                 data: { selectedData: selectedData as Record<string, unknown>[], columns: sanitizedColumns }
             });
-            if (typeof text === 'string' && text) {
+            if (typeof text === 'string') {
                 copyToClipboard(text);
                 if (afterCopy) {
                     afterCopy({ text, selectedData, columns: selectedColumns });
@@ -665,7 +665,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 type: 'COPY',
                 data: { selectedData, columns: sanitizedColumns }
             });
-            if (typeof text === 'string' && text) {
+            if (typeof text === 'string') {
                 copyToClipboard(text);
             }
         } catch (error) {
