@@ -78,6 +78,9 @@ const BodyCellInner = <RecordType,>({
         <div
             key={colKey}
             data-testid={`ux-table-cell-${rowIndex}-${colIndex}`}
+            data-row-index={rowIndex}
+            data-col-index={colIndex}
+            data-is-line-number={isLineNumberCol ? 'true' : 'false'}
             className={classNames}
             onMouseDown={(e) => handleCellMouseDown(e, rowIndex, colIndex, columnsLength, isLineNumberCol)}
             onMouseEnter={() => handleCellMouseEnter(rowIndex, colIndex, columnsLength, isLineNumberCol || isRowSelectionMode)}
