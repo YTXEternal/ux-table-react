@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { CellEditorProps } from './types';
+import styles from '../../style.module.css';
 
 /**
  * 单元格编辑器组件
@@ -43,16 +44,7 @@ export const CellEditor: React.FC<CellEditorProps> = ({ initialValue, onSave, on
                     onCancel();
                 }
             }}
-            style={{
-                width: '100%',
-                height: '100%',
-                boxSizing: 'border-box',
-                border: '2px solid #1890ff',
-                padding: '6px 14px',
-                outline: 'none',
-                fontFamily: 'inherit',
-                fontSize: 'inherit'
-            }}
+            className={styles.cellEditor}
         />
     );
 };

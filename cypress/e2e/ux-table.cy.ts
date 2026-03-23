@@ -48,7 +48,7 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseup', { force: true });
       cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)');
 
-      cy.get('.ux-table-main').trigger('keydown', { key: 'Escape' });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'Escape' });
       cy.get('[data-testid="ux-table-cell-0-2"]').should('not.have.css', 'background-color', 'rgb(230, 247, 255)');
     });
 
@@ -61,12 +61,12 @@ describe('UxTable 组件', () => {
 
       // 撤销 (由于我们需要模拟在选中状态下按键)
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      cy.get('.ux-table-main').trigger('keydown', { key: 'z', ctrlKey: true });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'z', ctrlKey: true });
       // 应该恢复为 "数据 0-1" (defaultDemo 中的初始数据)
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', '数据 0-1');
 
       // 恢复
-      cy.get('.ux-table-main').trigger('keydown', { key: 'y', ctrlKey: true });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'y', ctrlKey: true });
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', 'Edited Value');
     });
 
@@ -204,10 +204,9 @@ describe('UxTable 组件', () => {
       // 单击第一个单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
 
-      // 检查是否具有活动选中状态的 box-shadow
+      // 检查是否具有活动选中状态的 class
       cy.get('[data-testid="ux-table-cell-0-0"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)'); // #1890ff 对应的 rgb
+        .should('have.class', 'ux-table-selection-border');
     });
 
     it('单击表头应该选中整列', () => {
@@ -257,16 +256,14 @@ describe('UxTable 组件', () => {
 
       // 右侧相邻的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-0-2"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)');
+        .should('have.class', 'ux-table-selection-border');
 
       // 按下向下箭头
       cy.get('body').type('{downarrow}');
 
       // 下方的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-1-2"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)');
+        .should('have.class', 'ux-table-selection-border');
     });
   });
 
@@ -368,6 +365,35 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-1"]')
         .find('div[class*="marching-ants"]')
         .should('not.exist');
+    });
+  });
+
+  describe('自动边缘滚动测试', () => {
+    it('当框选并靠近边缘时，表格应该自动滚动', () => {
+      // 获取表格的初始滚动位置
+      cy.get('.ux-table-main-scrollbar').invoke('scrollTop').then((initialScrollTop) => {
+        // 在第一行的单元格按下鼠标左键，开始框选
+        cy.get('[data-testid="ux-table-cell-0-1"]').trigger('mousedown', { button: 0, force: true });
+        
+        // 获取表格容器的尺寸和位置
+        cy.get('.ux-table-main-scrollbar').then(($container) => {
+          const rect = $container[0].getBoundingClientRect();
+          // 模拟鼠标移动到靠近容器底部的区域（进入 5% 阈值内）
+          const clientY = rect.bottom - 5; // 距离底部 5px
+          const clientX = rect.left + 50;
+          
+          cy.window().trigger('mousemove', { clientX, clientY, force: true });
+          
+          // 等待一段时间让 requestAnimationFrame 循环执行几次滚动
+          cy.wait(500);
+          
+          // 释放鼠标，停止框选
+          cy.window().trigger('mouseup', { force: true });
+          
+          // 验证滚动条位置是否发生变化（应该向下滚动了）
+          cy.get('.ux-table-main-scrollbar').invoke('scrollTop').should('be.gt', initialScrollTop as number);
+        });
+      });
     });
   });
 });

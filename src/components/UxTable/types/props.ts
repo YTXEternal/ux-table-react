@@ -40,12 +40,16 @@ export interface UxTableColumn<RecordType> {
   fixed?: 'left' | 'right';
 }
 
+import type { Range } from '../../../tools/type/Range';
+
 export interface UxTableRef {
   /**
    * 聚焦指定区域
    */
   focusArea: (area: { row: [number, number]; cols: [number, number] }) => void;
 }
+
+type AutoScrollEdgeThreshold = Range<1, 20>;
 
 export interface UxTableProps<DataSource extends unknown[]> {
   /**
@@ -123,4 +127,13 @@ export interface UxTableProps<DataSource extends unknown[]> {
    * 记录多少次操作记录，用于撤销/恢复功能。默认为 5 次。最大上限为 20 次。
    */
   recordNum?: number;
+  /**
+   * 主色调，默认为 #1890ff
+   */
+  primaryColor?: string;
+  /**
+   * 自动滚动的边缘距离阈值（百分比），范围 1-20，默认为 5。
+   * 在表格内拖拽选择时，鼠标距离边缘在此范围内时触发自动滚动。
+   */
+  autoScrollEdgeThreshold?: AutoScrollEdgeThreshold;
 }

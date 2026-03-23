@@ -2,9 +2,9 @@ import '@testing-library/jest-dom';
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe() { }
+  unobserve() { }
+  disconnect() { }
 };
 
 // Mock layout properties to make virtualization work in jsdom

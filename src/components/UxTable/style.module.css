@@ -1,0 +1,61 @@
+.tableWrapper {
+  @apply flex flex-col h-auto w-auto;
+}
+
+.lineNumber {
+  @apply text-center text-[#9ca3af] select-none w-full text-[12px];
+}
+
+.mainScrollContainer {
+  @apply overflow-y-auto overflow-x-hidden relative outline-none select-none;
+}
+
+.virtualContainer {
+  @apply relative bg-[#fcfcfc];
+}
+
+.headerRow {
+  @apply sticky top-0 z-3 flex h-[40px] shadow-[0_1px_2px_rgba(0,0,0,0.03)];
+}
+
+.bodyRow {
+  @apply absolute top-0 left-0 w-full flex;
+}
+
+.bottomBar {
+  @apply shadow-[0_-1px_2px_rgba(0,0,0,0.02)] z-4;
+}
+
+/* HeaderCell */
+.headerCellText {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+.sorterWrapper {
+  @apply flex flex-col text-[10px] ml-[8px] cursor-pointer;
+}
+
+.sorterIcon {
+  @apply leading-[10px];
+}
+
+.resizer {
+  @apply absolute right-0 top-0 bottom-0 w-[5px] cursor-col-resize z-1;
+}
+
+/* BodyCell */
+.rowResizer {
+  @apply absolute bottom-0 left-0 right-0 h-[5px] cursor-row-resize z-5;
+}
+
+.cellContent {
+  @apply overflow-hidden text-ellipsis w-full;
+}
+
+/* CellEditor */
+.cellEditor {
+  @apply w-full h-full box-border px-[14px] py-[6px] outline-none text-[13px] text-[#1f2937] bg-white;
+  font-family: inherit;
+  border: 2px solid var(--ux-primary-color, #1890ff);
+  box-shadow: 0 0 0 2px var(--ux-primary-color-bg, rgba(24, 144, 255, 0.2));
+}

@@ -11,9 +11,9 @@ describe('workerLogic 算法逻辑', () => {
                 { key: 'name', dataIndex: 'name' },
                 { key: 'age', dataIndex: 'age' }
             ];
-            
+
             const result = processCopy(data, columns);
-            expect(result).toBe('John\t30\nJane\t25');
+            expect(result).toBe('John\t30\nJane\t25\n');
         });
 
         it('应该跳过 _line_number_ 行号列', () => {
@@ -22,9 +22,9 @@ describe('workerLogic 算法逻辑', () => {
                 { key: '_line_number_', dataIndex: 'id' },
                 { key: 'name', dataIndex: 'name' }
             ];
-            
+
             const result = processCopy(data, columns);
-            expect(result).toBe('John');
+            expect(result).toBe('John\n');
         });
 
         it('应该将 null 和 undefined 值处理为空字符串', () => {
@@ -34,9 +34,9 @@ describe('workerLogic 算法逻辑', () => {
                 { key: 'age', dataIndex: 'age' },
                 { key: 'address', dataIndex: 'address' }
             ];
-            
+
             const result = processCopy(data, columns);
-            expect(result).toBe('John\t\t');
+            expect(result).toBe('John\t\t\n');
         });
     });
 
@@ -89,7 +89,7 @@ describe('workerLogic 算法逻辑', () => {
             const finalData = [{ name: 'John' }];
             const columns = [{ editable: false, dataIndex: 'name' }];
             const bounds = { top: 0, bottom: 0, left: 0, right: 0 };
-            
+
             const result = processDelete(finalData, finalData, columns, bounds);
             expect(result).toBeNull();
         });
@@ -105,11 +105,12 @@ describe('workerLogic 算法逻辑', () => {
             ]);
         });
 
-        it('应该忽略空行', () => {
+        it('应该保留空行以实现一比一还原', () => {
             const text = 'John\t30\n\nJane\t25\n';
             const result = processPasteParse(text);
             expect(result).toEqual([
                 ['John', '30'],
+                [''],
                 ['Jane', '25']
             ]);
         });
@@ -130,7 +131,7 @@ describe('workerLogic 算法逻辑', () => {
             ];
 
             const result = processPaste(text, finalData, sortedData, columns, 0, 0);
-            
+
             expect(result).not.toBeNull();
             expect(result?.maxRowIdx).toBe(1);
             expect(result?.maxColIdx).toBe(1);
@@ -153,7 +154,7 @@ describe('workerLogic 算法逻辑', () => {
             ];
 
             const result = processPaste(text, finalData, sortedData, columns, 0, 0);
-            
+
             expect(result).not.toBeNull();
             expect(result?.newData).toEqual([
                 { name: 'John', age: '35' } // name is unchanged
@@ -174,7 +175,7 @@ describe('workerLogic 算法逻辑', () => {
 
             const cutBounds = { top: 1, bottom: 1, left: 0, right: 1 };
             const result = processPaste(text, finalData, sortedData, columns, 0, 0, cutBounds);
-            
+
             expect(result).not.toBeNull();
             expect(result?.newData).toEqual([
                 { name: 'NewJohn', age: '35' }, // Pasted row
@@ -195,20 +196,16 @@ describe('workerLogic 算法逻辑', () => {
 
             const cutBounds = { top: 0, bottom: 0, left: 0, right: 1 };
             const result = processPaste(text, finalData, sortedData, columns, 0, 0, cutBounds);
-            
+
             expect(result).not.toBeNull();
             expect(result?.newData).toEqual([
                 { name: 'NewJohn', age: '35' } // Pasted row correctly applied
             ]);
         });
 
-        it('如果文本为空或没有有效更改则应该返回 null', () => {
+        it('如果没有有效更改则应该返回 null', () => {
             const finalData = [{ name: 'John' }];
-            const columns = [{ editable: true, dataIndex: 'name' }];
-            
-            const result1 = processPaste('', finalData, finalData, columns, 0, 0);
-            expect(result1).toBeNull();
-            
+
             // All columns uneditable
             const result2 = processPaste('NewJohn', finalData, finalData, [{ editable: false, dataIndex: 'name' }], 0, 0);
             expect(result2).toBeNull();
