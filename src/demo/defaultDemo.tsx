@@ -9,13 +9,11 @@ interface DataType {
 const generateColumns = (cols: number): UxTableColumn<DataType>[] => {
     const columns: UxTableColumn<DataType>[] = [];
 
-    // 固定第一列
     columns.push({
-        title: '固定列',
+        title: '列',
         dataIndex: 'col_0',
         key: 'col_0',
         width: 150,
-        // fixed: 'left',
         editable: true,
         sorter: true
     });
