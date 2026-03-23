@@ -41,16 +41,16 @@ export const Cell = <RecordType,>({
                 left: isFixed === 'left' ? fixedOffset?.left : undefined,
                 right: isFixed === 'right' ? fixedOffset?.right : undefined,
                 zIndex: isFixed ? 1 : undefined,
-                backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.1)' : '#ffffff',
-                borderBottom: '1px solid #e8e8e8',
-                borderRight: '1px solid #e8e8e8',
+                backgroundColor: isSelected ? 'var(--ux-primary-color-bg, rgba(24, 144, 255, 0.1))' : '#ffffff',
+                borderBottom: '0.5px solid #e5e7eb',
+                borderRight: '0.5px solid #e5e7eb',
                 boxShadow: fixedOffset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (fixedOffset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
                 padding: isEditing ? 0 : '8px 16px',
                 overflow: 'visible',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 cursor: 'cell',
-                outline: isActive ? '2px solid #1890ff' : 'none',
+                outline: isActive ? '2px solid var(--ux-primary-color, #1890ff)' : 'none',
                 outlineOffset: '-2px'
             }}
         >
@@ -80,11 +80,14 @@ export const Cell = <RecordType,>({
                         width: '100%',
                         height: '100%',
                         boxSizing: 'border-box',
-                        border: '2px solid #1890ff',
+                        border: '2px solid var(--ux-primary-color, #1890ff)',
                         padding: '6px 14px',
                         outline: 'none',
                         fontFamily: 'inherit',
-                        fontSize: 'inherit'
+                        fontSize: '13px',
+                        color: '#1f2937',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 0 0 2px var(--ux-primary-color-bg, rgba(24, 144, 255, 0.2))'
                     }}
                 />
             ) : (

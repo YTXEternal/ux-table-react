@@ -123,4 +123,8 @@ export interface UxTableProps<DataSource extends unknown[]> {
    * 记录多少次操作记录，用于撤销/恢复功能。默认为 5 次。最大上限为 20 次。
    */
   recordNum?: number;
+  /**
+   * 主色调，默认为 #1890ff
+   */
+  primaryColor?: string;
 }

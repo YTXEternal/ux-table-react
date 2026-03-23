@@ -8,4 +8,5 @@
     "vite.config.ts": "vite.config.*, vitest.config.*, cypress.config.*, jest.config.*, uno.config.*, commitlint.config.*, eslint.config.*",
     "tsconfig.json": "tsconfig.*.json"
   },
+  "css.lint.unknownAtRules": "ignore"
 }

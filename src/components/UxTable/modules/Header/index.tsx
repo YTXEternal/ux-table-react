@@ -34,8 +34,8 @@ export const Header = <RecordType,>({
                                 right: isFixed === 'right' ? offset?.right : undefined,
                                 zIndex: isFixed ? 2 : 1,
                                 backgroundColor: '#fafafa',
-                                borderBottom: '1px solid #e8e8e8',
-                                borderRight: '1px solid #e8e8e8',
+                                borderBottom: '0.5px solid #e5e7eb',
+                                borderRight: '0.5px solid #e5e7eb',
                                 boxShadow: offset?.isLastLeft ? '6px 0 6px -4px rgba(0,0,0,0.1)' : (offset?.isFirstRight ? '-6px 0 6px -4px rgba(0,0,0,0.1)' : 'none'),
                                 padding: '8px 16px',
                                 textAlign: 'left',
@@ -48,8 +48,8 @@ export const Header = <RecordType,>({
                                 {/* 排序指示器，显示上下箭头 */}
                                 {column.sorter && (
                                     <div style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px' }}>
-                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'asc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
-                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'desc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
+                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'asc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
+                                        <span style={{ color: sortState?.colIndex === index && sortState.order === 'desc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
                                     </div>
                                 )}
                             </div>

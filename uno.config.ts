@@ -1,10 +1,13 @@
 import { defineConfig, presetUno, presetAttributify, presetIcons } from 'unocss'
-
+import transformerDirectives from '@unocss/transformer-directives'
 export default defineConfig({
   presets: [
     presetUno(),
     presetAttributify(),
     presetIcons(),
+  ],
+  transformers: [
+    transformerDirectives(),
   ],
   rules: [
     [/^scrollbar-thin$/, () => ({
@@ -26,8 +29,8 @@ export default defineConfig({
     `],
     // 蚂蚁线
     [/^marching-ants-(top|bottom|left|right)$/, ([, dir]) => {
-      const gradientX = 'repeating-linear-gradient(to right, #1890ff 0, #1890ff 4px, transparent 4px, transparent 8px)';
-      const gradientY = 'repeating-linear-gradient(to bottom, #1890ff 0, #1890ff 4px, transparent 4px, transparent 8px)';
+      const gradientX = 'repeating-linear-gradient(to right, var(--ux-primary-color, #1890ff) 0, var(--ux-primary-color, #1890ff) 4px, transparent 4px, transparent 8px)';
+      const gradientY = 'repeating-linear-gradient(to bottom, var(--ux-primary-color, #1890ff) 0, var(--ux-primary-color, #1890ff) 4px, transparent 4px, transparent 8px)';
 
       if (dir === 'top') {
         return `
@@ -92,22 +95,22 @@ export default defineConfig({
     ['text-ellipsis', 'truncate'],
 
     // UxTable 样式
-    ['ux-table-wrapper', 'bg-white border-b-1 border-b-[#e8e8e8] border-r-1 border-r-[#e8e8e8] box-border'],
-    ['ux-table-bottom-bar', 'flex h-[24px] bg-[#f3f3f3] border-t-1 border-t-[#e8e8e8] items-center'],
+    ['ux-table-wrapper', 'bg-white border-[0.5px] border-solid border-[#e5e7eb] box-border'],
+    ['ux-table-bottom-bar', 'border-0.5px flex h-[24px] bg-[#fafafa] border-t-[0.5px] border-solid border-[#e5e7eb] items-center'],
     ['ux-table-tabs', 'flex-1 flex h-full items-end pl-[8px] gap-[2px] overflow-hidden'],
-    ['ux-table-tab', 'px-[12px] h-[20px] leading-[20px] text-[12px] text-[#666] bg-[#e6e6e6] border-1 border-[#d9d9d9] border-b-none rounded-t-[4px] cursor-pointer select-none'],
-    ['ux-table-tab-active', 'bg-white text-[#1890ff] border-t-2 border-t-[#1890ff] font-bold'],
-    ['ux-table-tab-hover', 'hover:bg-[#f0f0f0]'],
+    ['ux-table-tab', 'px-[12px] h-[20px] leading-[20px] text-[12px] text-[#666] bg-[#f5f5f5] border-[0.5px] border-solid border-[#e5e7eb] border-b-transparent rounded-t-[4px] cursor-pointer select-none transition-colors'],
+    ['ux-table-tab-active', 'bg-white text-[var(--ux-primary-color,#1890ff)] border-t-2 border-solid border-[var(--ux-primary-color,#1890ff)] font-medium'],
+    ['ux-table-tab-hover', 'hover:bg-[#eef0f2]'],
     ['ux-table-scrollbar-x-container', 'flex-1 overflow-x-auto overflow-y-hidden h-full scrollbar-thin ux-table-x-scrollbar'],
 
-    ['ux-table-cell-base', 'border-b-1 border-b-[#e8e8e8] border-r-1 border-r-[#e8e8e8] box-border text-ellipsis whitespace-nowrap cursor-cell flex items-center'],
-    ['ux-table-header-cell', 'bg-[#fafafa] px-[16px] py-[8px] select-none justify-between'],
-    ['ux-table-body-cell', 'bg-white'],
-    ['ux-table-cell-selected', 'bg-[#e6f7ff]'],
+    ['ux-table-cell-base', 'border-l-0px border-t-0px border-b-[0.5px] border-r-[0.5px] border-solid border-[#e5e7eb] box-border text-ellipsis whitespace-nowrap cursor-cell flex items-center'],
+    ['ux-table-header-cell', 'bg-[#fafafa] px-[16px] py-[8px] select-none justify-between font-medium text-[#4b5563] text-[13px] tracking-wide'],
+    ['ux-table-body-cell', 'bg-white group-hover:bg-[#f8f9fa] text-[#1f2937] text-[13px]'],
+    ['ux-table-cell-selected', 'bg-[var(--ux-primary-color-bg,#e6f7ff)] group-hover:bg-[var(--ux-primary-color-bg,#e6f7ff)]'],
     ['ux-table-cell-active', 'bg-white'],
     ['ux-table-shadow-left', 'shadow-[6px_0_6px_-4px_rgba(0,0,0,0.1)]'],
     ['ux-table-shadow-right', 'shadow-[-6px_0_6px_-4px_rgba(0,0,0,0.1)]'],
-    ['ux-table-selection-border', 'after:content-[""] after:absolute after:inset-0 after:shadow-[inset_var(--sel-left,0)_var(--sel-top,0)_0_0_#1890ff,inset_var(--sel-right,0)_var(--sel-bottom,0)_0_0_#1890ff] after:pointer-events-none'],
+    ['ux-table-selection-border', 'after:content-[""] after:absolute after:inset-0 after:shadow-[inset_var(--sel-left,0)_var(--sel-top,0)_0_0_var(--ux-primary-color,#1890ff),inset_var(--sel-right,0)_var(--sel-bottom,0)_0_0_var(--ux-primary-color,#1890ff)] after:pointer-events-none'],
     ['ux-table-cell-cut', 'opacity-50'],
   ],
 })
