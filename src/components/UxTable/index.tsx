@@ -610,6 +610,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
      */
     const handleCut = async () => {
         if (!selection) return; // 卫语句：防止无选区时剪切
+        setSelection(null);
         const minRow = Math.min(selection.start.row, selection.end.row);
         const maxRow = Math.max(selection.start.row, selection.end.row);
         const r1 = Math.max(0, minRow);
