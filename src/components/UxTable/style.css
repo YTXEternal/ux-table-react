@@ -1,0 +1,70 @@
+.ux-table-line-number {
+  @apply text-center text-[#9ca3af] select-none w-full text-[12px];
+}
+
+.ux-table-container {
+  @apply flex flex-col h-auto w-auto;
+}
+
+.ux-table-main-area {
+  @apply overflow-y-auto overflow-x-hidden relative outline-none select-none;
+}
+
+.ux-table-inner-wrapper {
+  @apply relative bg-[#fcfcfc];
+}
+
+.ux-table-header-row {
+  @apply sticky top-0 z-3 flex h-[40px] shadow-[0_1px_2px_rgba(0,0,0,0.03)];
+}
+
+.ux-table-row-wrapper {
+  @apply absolute top-0 left-0 w-full flex;
+}
+
+.ux-table-bottom-bar-wrapper {
+  @apply shadow-[0_-1px_2px_rgba(0,0,0,0.02)] z-4;
+}
+
+/* HeaderCell */
+.ux-table-header-cell-inner {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+.ux-table-sort-icon-container {
+  @apply flex flex-col text-[10px] ml-[8px] cursor-pointer;
+}
+
+.ux-table-sort-icon {
+  @apply leading-[10px];
+}
+
+.ux-table-sort-icon-active {
+  @apply text-[var(--ux-primary-color,#1890ff)];
+}
+
+.ux-table-sort-icon-inactive {
+  @apply text-[#bfbfbf];
+}
+
+.ux-table-header-resizer {
+  @apply absolute top-0 right-0 w-[4px] h-full cursor-col-resize z-10 hover:bg-[var(--ux-primary-color,#1890ff)];
+}
+
+/* BodyCell */
+.ux-table-body-cell-inner {
+  @apply overflow-hidden text-ellipsis w-full flex;
+}
+
+.ux-table-body-cell-line-number {
+  @apply justify-center;
+}
+
+.ux-table-body-cell-content {
+  @apply justify-start;
+}
+
+/* CellEditor */
+.ux-table-cell-editor {
+  @apply absolute top-0 left-0 w-full h-full border-2 border-solid border-[var(--ux-primary-color,#1890ff)] bg-white z-10 box-border p-0 m-0 outline-none shadow-[0_0_0_2px_rgba(24,144,255,0.2)];
+}
