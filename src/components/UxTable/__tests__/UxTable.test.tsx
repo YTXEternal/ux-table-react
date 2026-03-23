@@ -93,7 +93,7 @@ describe('UxTable 组件', () => {
     const gridConfig = { rows: 3, cols: 3 };
     const testData = [{ key: '1', name: 'John Doe' }] as DataType[];
     //  to match original grid testing layout exactly
-    render(<UxTable columns={columns} data={testData} rowKey="key" gridConfig={gridConfig}  />);
+    render(<UxTable columns={columns} data={testData} rowKey="key" gridConfig={gridConfig} />);
 
     // The test mock virtualizer renders all items
     // If target cols is 3, columns length becomes 3 (1, 2, 3)
@@ -165,7 +165,7 @@ describe('UxTable 组件', () => {
 
   it('点击行号单元格时选中整行', async () => {
     const user = userEvent.setup();
-    render(<UxTable columns={columns} data={data} rowKey="key"  />);
+    render(<UxTable columns={columns} data={data} rowKey="key" />);
 
     // cell-0-0 is the line number cell for the first row
     const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
@@ -238,7 +238,7 @@ describe('UxTable 组件', () => {
     const { container } = render(<UxTable columns={columns} data={data} rowKey="key" />);
 
     const cell01 = screen.getByTestId('ux-table-cell-0-1');
-    const tableMain = container.querySelector('.ux-table-main');
+    const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
     // Select cell
     await user.click(cell01);
@@ -261,7 +261,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} />);
 
       // Select the entire column by clicking header
       const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
@@ -293,7 +293,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} />);
 
       // Select the entire row using line number cell
       const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
@@ -323,7 +323,7 @@ describe('UxTable 组件', () => {
       const { container } = render(<UxTable columns={columns} data={data} rowKey="key" />);
 
       const cell01 = screen.getByTestId('ux-table-cell-0-1');
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       // Select cell
       await user.click(cell01);
@@ -383,7 +383,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      const { rerender } = render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      const { rerender } = render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
 
       const cell00 = screen.getByTestId('ux-table-cell-0-0');
       await user.click(cell00);
@@ -398,7 +398,7 @@ describe('UxTable 组件', () => {
 
       // 修改 mock 允许复制
       beforeCopy.mockResolvedValue(true);
-      rerender(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
+      rerender(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} beforeCopy={beforeCopy} afterCopy={afterCopy} />);
 
       // 需要重新选中单元格，因为复制操作清空了选区
       await user.click(cell00);
@@ -422,7 +422,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} />);
 
       // Select the entire column by clicking header
       const headerCell = screen.getByTestId('ux-table-header-cell-1'); // Name column
@@ -447,7 +447,7 @@ describe('UxTable 组件', () => {
       const originalExecCommand = document.execCommand;
       document.execCommand = jest.fn();
 
-      render(<UxTable columns={columns} data={data} rowKey="key"  isWorker={false} />);
+      render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} />);
 
       const lineNumCell = screen.getByTestId('ux-table-cell-0-0');
       await user.click(lineNumCell);
@@ -471,7 +471,7 @@ describe('UxTable 组件', () => {
       const { container } = render(<UxTable columns={columns} data={data} rowKey="key" />);
 
       const cell01 = screen.getByTestId('ux-table-cell-0-1');
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       // Select cell
       await user.click(cell01);
@@ -533,7 +533,7 @@ describe('UxTable 组件', () => {
       const cell01 = screen.getByTestId('ux-table-cell-0-1');
       await user.click(cell01);
 
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       // Simulate paste event
       const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
@@ -567,7 +567,7 @@ describe('UxTable 组件', () => {
       const cell01 = screen.getByTestId('ux-table-cell-0-1');
       await user.click(cell01);
 
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
       Object.defineProperty(pasteEvent, 'clipboardData', {
@@ -598,7 +598,7 @@ describe('UxTable 组件', () => {
           columns={columns}
           data={data}
           rowKey="key"
-          
+
           onDataChange={onDataChange}
           isWorker={false}
           beforePaste={beforePaste}
@@ -609,7 +609,7 @@ describe('UxTable 组件', () => {
       const cell00 = screen.getByTestId('ux-table-cell-0-0');
       await user.click(cell00);
 
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
       Object.defineProperty(pasteEvent, 'clipboardData', {
@@ -634,7 +634,7 @@ describe('UxTable 组件', () => {
           columns={columns}
           data={data}
           rowKey="key"
-          
+
           onDataChange={onDataChange}
           isWorker={false}
           beforePaste={beforePaste}
@@ -760,7 +760,7 @@ describe('UxTable 组件', () => {
         />
       );
 
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       // 选一个单元格以便能触发键盘事件
       await user.click(screen.getByTestId('ux-table-cell-0-1'));
@@ -834,7 +834,7 @@ describe('UxTable 组件', () => {
       document.execCommand = jest.fn();
 
       const { container } = render(<UxTable columns={columns} data={data} rowKey="key" isWorker={false} />);
-      const tableMain = container.querySelector('.ux-table-main');
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
 
       // Press Ctrl+C without selecting anything
       if (tableMain) {

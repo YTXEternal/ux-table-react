@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { CellEditor } from '../CellEditor';
-import styles from '../../styles.module.css';
 import type { BodyCellProps } from './types';
 
 /**
@@ -47,15 +46,15 @@ const BodyCellInner = <RecordType,>({
      * 计算单元格的 className 组合
      */
     const classNames = [
-        styles['ux-table-cell'],
-        styles['ux-table-body-cell'],
-        isFixed ? styles['ux-table-cell-fixed'] : styles['ux-table-cell-absolute'],
-        isSelected ? styles['ux-table-cell-selected'] : '',
-        isActive ? styles['ux-table-cell-active'] : '',
-        offset?.isLastLeft ? styles['ux-table-shadow-left'] : '',
-        offset?.isFirstRight ? styles['ux-table-shadow-right'] : '',
-        isSelected || isActive ? styles['ux-table-selection-border'] : '',
-        isCut ? styles['ux-table-cell-cut'] : ''
+        'ux-table-cell-base',
+        'ux-table-body-cell',
+        isFixed ? 'sticky' : 'absolute',
+        isSelected ? 'ux-table-cell-selected' : '',
+        isActive ? 'ux-table-cell-active' : '',
+        offset?.isLastLeft ? 'ux-table-shadow-left' : '',
+        offset?.isFirstRight ? 'ux-table-shadow-right' : '',
+        isSelected || isActive ? 'ux-table-selection-border' : '',
+        isCut ? 'ux-table-cell-cut' : ''
     ].filter(Boolean).join(' ');
 
     /**
@@ -100,10 +99,10 @@ const BodyCellInner = <RecordType,>({
             }}
         >
             {/* 渲染复制/剪切操作时的蚂蚁线效果 */}
-            {isAntsTop && <div className={styles['marching-ants-top']} />}
-            {isAntsBottom && <div className={styles['marching-ants-bottom']} />}
-            {isAntsLeft && <div className={styles['marching-ants-left']} />}
-            {isAntsRight && <div className={styles['marching-ants-right']} />}
+            {isAntsTop && <div className="marching-ants-top" />}
+            {isAntsBottom && <div className="marching-ants-bottom" />}
+            {isAntsLeft && <div className="marching-ants-left" />}
+            {isAntsRight && <div className="marching-ants-right" />}
 
             {/* 渲染行高调整手柄（仅在第一列显示） */}
             {colIndex === 0 && (

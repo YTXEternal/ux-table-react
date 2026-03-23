@@ -10,7 +10,6 @@ import type { WorkerPayload, WorkerResult } from './workers/types';
 import { createTableWorker } from './workers/createWorker';
 import { useVirtualizer, defaultRangeExtractor } from '@tanstack/react-virtual';
 import type { VirtualItem } from '@tanstack/react-virtual';
-import styles from './styles.module.css';
 import { CELL_HEIGHT } from './constants';
 import { HeaderCell } from './components/HeaderCell';
 import { BodyCell } from './components/BodyCell';
@@ -929,7 +928,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     return (
         <div
-            className={`${styles['ux-table-wrapper']} ${className || ''}`}
+            className={`ux-table-wrapper ${className || ''}`}
             style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -959,7 +958,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     outline: 'none',
                     userSelect: 'none', // 防止拖拽时选中文本
                 }}
-                className={styles['ux-table-main']}
+                className="scrollbar-thin ux-table-main-scrollbar"
             >
                 <div style={{
                     height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
@@ -1011,15 +1010,15 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             </div>
 
             {/* 底部标签页与滚动条区域 */}
-            <div className={styles['ux-table-bottom-bar']}>
+            <div className="ux-table-bottom-bar">
                 {/* 左侧：标签页 (暂作示例) */}
-                <div className={styles['ux-table-tabs']}>
+                <div className="ux-table-tabs">
                 </div>
 
                 {/* 右侧：同步横向滚动条 */}
                 <div
                     ref={scrollbarRef}
-                    className={styles['ux-table-scrollbar-x']}
+                    className="ux-table-scrollbar-x-container"
                     onScroll={handleBottomScroll}
                 >
                     <div style={{ width: `${colVirtualizer.getTotalSize()}px`, height: '1px' }} />

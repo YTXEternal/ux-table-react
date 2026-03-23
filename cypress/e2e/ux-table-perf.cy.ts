@@ -47,7 +47,7 @@ describe('UxTable 性能测试', () => {
                         pasteEvent.clipboardData = clipboardData;
 
                         const startPaste = performance.now();
-                        win.document.querySelector('.ux-table-main')?.dispatchEvent(pasteEvent);
+                        win.document.querySelector('.ux-table-main-scrollbar')?.dispatchEvent(pasteEvent);
                         
                         setTimeout(() => {
                             const endPaste = performance.now();
