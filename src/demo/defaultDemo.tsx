@@ -6,7 +6,6 @@ interface DataType {
     [key: string]: string | number | null;
 }
 
-// 生成大规模列定义
 const generateColumns = (cols: number): UxTableColumn<DataType>[] => {
     const columns: UxTableColumn<DataType>[] = [];
 
@@ -43,7 +42,6 @@ const generateColumns = (cols: number): UxTableColumn<DataType>[] => {
     return columns;
 };
 
-// 生成大规模数据
 const generateData = (rows: number, cols: number): DataType[] => {
     const data: DataType[] = [];
     for (let i = 0; i < rows; i++) {
@@ -78,9 +76,9 @@ function DefaultDemo() {
     };
 
     return (
-        <div>
-            <div style={{ padding: 20, height: '500px', width: '1000px', display: 'flex', flexDirection: 'column' }}>
-                <h1>UxTable</h1>
+        <div className='h-92vh w-95vw'>
+            <div
+                className='p-20px wh-full  flex flex-col justify-center' >
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                     <UxTable<DataType[]>
                         columns={initialColumns}
