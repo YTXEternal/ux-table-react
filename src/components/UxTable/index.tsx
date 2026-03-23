@@ -133,7 +133,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
         beforeCopy,
         afterCopy,
         beforePaste,
-        afterPaste
+        afterPaste,
+        primaryColor
     } = props;
     const tableRef = useRef<HTMLDivElement>(null);
 
@@ -273,6 +274,33 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // 行高管理
     const [rowHeights, setRowHeights] = React.useState<Record<number, number>>({});
     const resizingRowRef = useRef<{ index: number; startY: number; startHeight: number } | null>(null);
+
+    // 样式变量
+    const tableStyleVariables = useMemo(() => {
+        if (!primaryColor) return {};
+        
+        let bgColor = '#e6f7ff';
+        if (primaryColor.startsWith('#')) {
+            let r = 0, g = 0, b = 0;
+            if (primaryColor.length === 4) {
+                r = parseInt(primaryColor[1] + primaryColor[1], 16);
+                g = parseInt(primaryColor[2] + primaryColor[2], 16);
+                b = parseInt(primaryColor[3] + primaryColor[3], 16);
+            } else if (primaryColor.length === 7) {
+                r = parseInt(primaryColor.substring(1, 3), 16);
+                g = parseInt(primaryColor.substring(3, 5), 16);
+                b = parseInt(primaryColor.substring(5, 7), 16);
+            }
+            bgColor = `rgba(${r}, ${g}, ${b}, 0.1)`;
+        } else {
+            bgColor = `color-mix(in srgb, ${primaryColor} 10%, transparent)`;
+        }
+
+        return {
+            '--ux-primary-color': primaryColor,
+            '--ux-primary-color-bg': bgColor
+        } as React.CSSProperties;
+    }, [primaryColor]);
 
     React.useEffect(() => {
         if (editingCell) {
@@ -934,8 +962,9 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 flexDirection: 'column',
                 height: 'auto',
                 width: 'auto',
-                borderTop: '1px solid #e8e8e8',
-                borderLeft: '1px solid #e8e8e8',
+                borderTop: '1px solid #f0f0f0',
+                borderLeft: '1px solid #f0f0f0',
+                ...tableStyleVariables,
                 ...props.style
             }}
         >
@@ -988,6 +1017,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                         return (
                             <div
                                 key={rowKeyValue}
+                                className="ux-table-row group"
                                 data-testid={`ux-table-row-${rowIndex}`}
                                 style={{
                                     position: 'absolute',

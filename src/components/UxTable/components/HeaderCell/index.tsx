@@ -89,8 +89,8 @@ const HeaderCellInner = <RecordType,>({
                     }}
                     style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px', cursor: 'pointer' }}
                 >
-                    <span style={{ color: isSorted && sortOrder === 'asc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
-                    <span style={{ color: isSorted && sortOrder === 'desc' ? '#1890ff' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
+                    <span style={{ color: isSorted && sortOrder === 'asc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
+                    <span style={{ color: isSorted && sortOrder === 'desc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
                 </div>
             )}
             {/* 渲染列宽拖拽调整手柄（如果列配置未禁用 resizable） */}
