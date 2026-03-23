@@ -962,8 +962,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 flexDirection: 'column',
                 height: 'auto',
                 width: 'auto',
-                borderTop: '1px solid #f0f0f0',
-                borderLeft: '1px solid #f0f0f0',
                 ...tableStyleVariables,
                 ...props.style
             }}
