@@ -107,7 +107,7 @@ export default defineConfig({
     ['ux-table-cell-active', 'bg-white'],
     ['ux-table-shadow-left', 'shadow-[6px_0_6px_-4px_rgba(0,0,0,0.1)]'],
     ['ux-table-shadow-right', 'shadow-[-6px_0_6px_-4px_rgba(0,0,0,0.1)]'],
-    ['ux-table-selection-border', 'shadow-[inset_var(--sel-left,0)_var(--sel-top,0)_0_0_#1890ff,inset_var(--sel-right,0)_var(--sel-bottom,0)_0_0_#1890ff]'],
+    ['ux-table-selection-border', 'after:content-[""] after:absolute after:inset-0 after:shadow-[inset_var(--sel-left,0)_var(--sel-top,0)_0_0_#1890ff,inset_var(--sel-right,0)_var(--sel-bottom,0)_0_0_#1890ff] after:pointer-events-none'],
     ['ux-table-cell-cut', 'opacity-50'],
   ],
 })
