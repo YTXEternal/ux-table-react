@@ -100,7 +100,7 @@ export default defineConfig({
     ['ux-table-tab-hover', 'hover:bg-[#eef0f2]'],
     ['ux-table-scrollbar-x-container', 'flex-1 overflow-x-auto overflow-y-hidden h-full scrollbar-thin ux-table-x-scrollbar'],
 
-    ['ux-table-cell-base', 'border-b-1 border-b-[#f0f0f0] border-r-1 border-r-[#f0f0f0] box-border text-ellipsis whitespace-nowrap cursor-cell flex items-center transition-all duration-150 ease-in-out'],
+    ['ux-table-cell-base', 'border-b-1 border-b-[#f0f0f0] border-r-1 border-r-[#f0f0f0] box-border text-ellipsis whitespace-nowrap cursor-cell flex items-center'],
     ['ux-table-header-cell', 'bg-[#fafafa] px-[16px] py-[8px] select-none justify-between font-medium text-[#4b5563] text-[13px] tracking-wide'],
     ['ux-table-body-cell', 'bg-white group-hover:bg-[#f8f9fa] text-[#1f2937] text-[13px]'],
     ['ux-table-cell-selected', 'bg-[var(--ux-primary-color-bg,#e6f7ff)] group-hover:bg-[var(--ux-primary-color-bg,#e6f7ff)]'],
