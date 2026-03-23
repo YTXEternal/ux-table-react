@@ -19,6 +19,7 @@ import { useResizing } from './hooks/useResizing';
 import { useSelection } from './hooks/useSelection';
 import { useEditing } from './hooks/useEditing';
 import { useSorting } from './hooks/useSorting';
+import { useAutoScroll } from './hooks/useAutoScroll';
 
 
 /**
@@ -209,6 +210,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     const {
         selection,
         setSelection,
+        isSelecting,
         handleCellMouseDown,
         handleCellMouseEnter,
         handleColHeaderMouseDown,
@@ -224,6 +226,36 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     } = useEditing(finalData, columns, sortedData, handleDataChange);
     const fixedOffsets = useFixedColumns(columns);
     const { copyToClipboard } = useClipboard();
+
+    // 虚拟滚动容器 ref
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    // 自动滚动处理
+    const handleScrollEdge = useCallback((clientX: number, clientY: number) => {
+        const el = document.elementFromPoint(clientX, clientY);
+        const cell = el?.closest('.ux-table-body-cell') as HTMLElement;
+        if (cell) {
+            const rowIndexStr = cell.getAttribute('data-row-index');
+            const colIndexStr = cell.getAttribute('data-col-index');
+            const isLineNumberStr = cell.getAttribute('data-is-line-number');
+            if (rowIndexStr !== null && colIndexStr !== null) {
+                const isRowSelectionMode = !!(selection && selection.start.col === 0 && selection.end.col === columns.length - 1);
+                handleCellMouseEnter(
+                    parseInt(rowIndexStr, 10),
+                    parseInt(colIndexStr, 10),
+                    columns.length,
+                    isLineNumberStr === 'true' || isRowSelectionMode
+                );
+            }
+        }
+    }, [handleCellMouseEnter, columns.length, selection]);
+
+    useAutoScroll({
+        scrollContainerRef: parentRef,
+        isSelecting,
+        thresholdPercentage: props.autoScrollEdgeThreshold || 5,
+        onScrollEdge: handleScrollEdge
+    });
 
     // 初始化 Web Worker
     /**
@@ -331,7 +363,6 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     }, [selection]);
 
     // Virtualization
-    const parentRef = useRef<HTMLDivElement>(null);
     const scrollbarRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
