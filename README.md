@@ -1,7 +1,5 @@
 # UX Table React
 
-[![npm version](https://img.shields.io/npm/v/ux-table-react.svg)](https://www.npmjs.com/package/ux-table-react)
-[![License](MIT)](https://github.com/ux-table/ux-table-react/blob/master/LICENSE)
 [![React](https://img.shields.io/badge/React-18%20%7C%2019-blue.svg)](https://react.dev/)
 
 UX Table React 是一个基于 React 开发的高性能表格组件库。它专为大数据量和复杂交互场景设计，内置了丰富的数据网格（DataGrid）功能，在保持轻量级的同时提供极致的渲染性能。
@@ -42,73 +40,9 @@ yarn add ux-table-react
 
 [📖 使用文档](https://ytxeternal.github.io/ux-table-react/)
 
-引入组件及其基础样式文件即可开始使用：
-
-```tsx
-import React, { useState } from 'react';
-import { UxTable } from 'ux-table-react';
-import 'ux-table-react/style.css'; // 必须引入样式文件
-
-const columns = [
-  { title: '姓名', dataIndex: 'name', key: 'name', width: 120 },
-  { title: '年龄', dataIndex: 'age', key: 'age', width: 100, sortable: true },
-  { title: '住址', dataIndex: 'address', key: 'address', width: 250 },
-];
-
-const initialData = [
-  { key: '1', name: '张三', age: 32, address: '浙江省杭州市西湖区湖底公园1号' },
-  { key: '2', name: '李四', age: 42, address: '浙江省杭州市西湖区湖底公园2号' },
-];
-
-function App() {
-  const [data, setData] = useState(initialData);
-
-  return (
-    <div style={{ height: 400, width: '100%' }}>
-      <UxTable 
-        columns={columns} 
-        data={data} 
-        rowKey="key"
-        onDataChange={setData}
-        recordNum={10} // 开启撤销重做功能，记录 10 步历史
-      />
-    </div>
-  );
-}
-
-export default App;
-```
-
-### ⚙️ 核心 API 预览
-
-#### UxTable Props
-
-| 属性 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| `data` | 表格数据数组 | `Record<string, any>[]` | `[]` |
-| `columns` | 表格列配置 | `Column[]` | `[]` |
-| `rowKey` | 表格行 key 的取值字段或函数 | `string \| ((record: any) => string)` | `'id'` |
-| `onDataChange` | 数据变化时的回调 | `(newData: any[]) => void` | - |
-| `recordNum` | 记录多少次操作记录（用于 ctrl+z/ctrl+y 撤销重做） | `number` | `5` (上限20) |
-| `gridConfig` | 网格配置，用于补齐空单元格 | `{ rows: number; cols: number; }` | - |
-| `infinite` | 无限滚动配置 | `{ row: number; col: number; gap: number }` | - |
-| `isWorker` | 是否开启 Web Worker 处理耗时任务（如大数据复制粘贴） | `boolean` | `true` |
-
-> 更多详细的 API 文档、高级特性说明（如虚拟滚动、单元格编辑等）和在线交互示例，请访问我们的[官方文档网站](https://ux-table.github.io/ux-table-react/)。
-
 ## 👨‍💻 贡献代码
 
 我们非常欢迎你参与到 `ux-table-react` 的开发中来！
-
-### 环境准备
-
-克隆项目后，使用 `pnpm` 安装依赖：
-
-```bash
-git clone https://github.com/ux-table/ux-table-react.git
-cd ux-table-react
-pnpm install
-```
 
 ### 常用命令
 
@@ -146,8 +80,6 @@ pnpm install
 > - 避免冗余代码，尽量减少嵌套深度，避免直接使用过多的 `if-else`（可采用策略模式、卫语句优化）
 > - TypeScript 中禁止使用 `any` 类型
 
-详细的规范要求请参阅仓库下的 `.trae/rules/` 目录。
-
 ## 📄 协议
 
-本项目基于 [MIT](https://github.com/ux-table/ux-table-react/blob/main/LICENSE) 协议开源。
+本项目基于 [MIT](https://github.com/YTXEternal/ux-table-react/blob/develop/LICENSE.txt) 协议开源。
