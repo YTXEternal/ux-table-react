@@ -76,7 +76,7 @@ const HeaderCellInner = <RecordType,>({
             {isAntsLeft && <div className="marching-ants-left" />}
             {isAntsRight && <div className="marching-ants-right" />}
 
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="ux-table-header-cell-inner">
                 {column.title as React.ReactNode}
             </span>
             {/* 渲染排序指示器（仅在列配置了 sorter 时显示） */}
@@ -87,10 +87,10 @@ const HeaderCellInner = <RecordType,>({
                         e.stopPropagation();
                         handleSort(index);
                     }}
-                    style={{ display: 'flex', flexDirection: 'column', fontSize: '10px', marginLeft: '8px', cursor: 'pointer' }}
+                    className="ux-table-sort-icon-container"
                 >
-                    <span style={{ color: isSorted && sortOrder === 'asc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▲</span>
-                    <span style={{ color: isSorted && sortOrder === 'desc' ? 'var(--ux-primary-color, #1890ff)' : '#bfbfbf', lineHeight: '10px' }}>▼</span>
+                    <span className={`ux-table-sort-icon ${isSorted && sortOrder === 'asc' ? 'ux-table-sort-icon-active' : 'ux-table-sort-icon-inactive'}`}>▲</span>
+                    <span className={`ux-table-sort-icon ${isSorted && sortOrder === 'desc' ? 'ux-table-sort-icon-active' : 'ux-table-sort-icon-inactive'}`}>▼</span>
                 </div>
             )}
             {/* 渲染列宽拖拽调整手柄（如果列配置未禁用 resizable） */}
@@ -98,15 +98,7 @@ const HeaderCellInner = <RecordType,>({
                 <div
                     data-testid={`ux-table-resizer-${index}`}
                     onMouseDown={(e) => handleResizeMouseDown(e, index)}
-                    style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: '5px',
-                        cursor: 'col-resize',
-                        zIndex: 1
-                    }}
+                    className="ux-table-header-resizer"
                 />
             )}
         </div>

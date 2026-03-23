@@ -13,6 +13,7 @@ import type { VirtualItem } from '@tanstack/react-virtual';
 import { CELL_HEIGHT } from './constants';
 import { HeaderCell } from './components/HeaderCell';
 import { BodyCell } from './components/BodyCell';
+import './style.css';
 
 import { useResizing } from './hooks/useResizing';
 import { useSelection } from './hooks/useSelection';
@@ -177,7 +178,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             fixed: 'left',
             editable: false,
             resizable: false,
-            render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#9ca3af', userSelect: 'none', width: '100%', fontSize: '12px' }}>{index + 1}</div>
+            render: (_: unknown, __: DataSource[number], index: number) => <div className="ux-table-line-number">{index + 1}</div>
         } as unknown as UxTableColumn<DataSource[number]>);
 
         let targetRows = propData.length;
@@ -956,12 +957,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
 
     return (
         <div
-            className={`ux-table-wrapper ${className || ''}`}
+            className={`ux-table-wrapper ux-table-container ${className || ''}`}
             style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: 'auto',
-                width: 'auto',
                 ...tableStyleVariables,
                 ...props.style
             }}
@@ -978,30 +975,20 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 onPaste={handlePaste}
                 onScroll={handleMainScroll}
                 onWheel={handleWheel}
-                style={{
-                    overflowY: 'auto',
-                    overflowX: 'hidden', /* 隐藏横向滚动条，通过底部滚动条控制 */
-                    position: 'relative',
-                    outline: 'none',
-                    userSelect: 'none', // 防止拖拽时选中文本
-                }}
-                className="scrollbar-thin ux-table-main-scrollbar"
+                className="scrollbar-thin ux-table-main-scrollbar ux-table-main-area"
             >
-                <div style={{
-                    height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
-                    width: `${colVirtualizer.getTotalSize()}px`,
-                    position: 'relative',
-                    background: '#fcfcfc', // 表格空白区域背景色
-                }}>
+                <div
+                    className="ux-table-inner-wrapper"
+                    style={{
+                        height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
+                        width: `${colVirtualizer.getTotalSize()}px`,
+                    }}
+                >
                     {/* 渲染表头 */}
-                    <div style={{
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 3,
-                        display: 'flex',
-                        height: '40px', // 固定表头高度
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)', // 表头底部微弱阴影
-                    }} data-testid="ux-table-header-row">
+                    <div
+                        className="ux-table-header-row"
+                        data-testid="ux-table-header-row"
+                    >
                         {colVirtualizer.getVirtualItems().map(renderHeaderCell)}
                     </div>
                     {/* 渲染数据体 */}
@@ -1017,16 +1004,11 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                         return (
                             <div
                                 key={rowKeyValue}
-                                className="ux-table-row group"
+                                className="ux-table-row group ux-table-row-wrapper"
                                 data-testid={`ux-table-row-${rowIndex}`}
                                 style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start + 40}px)`, // +40 为表头高度
-                                    display: 'flex',
                                     zIndex: (selectionBounds && rowIndex >= selectionBounds.top && rowIndex <= selectionBounds.bottom) ? 2 : 1 // 提升包含选中单元格的行的层级
                                 }}
                             >
@@ -1040,7 +1022,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             </div>
 
             {/* 底部标签页与滚动条区域 */}
-            <div className="ux-table-bottom-bar" style={{ boxShadow: '0 -1px 2px rgba(0,0,0,0.02)', zIndex: 4 }}>
+            <div className="ux-table-bottom-bar ux-table-bottom-bar-wrapper">
                 {/* 左侧：标签页 (暂作示例) */}
                 <div className="ux-table-tabs">
                 </div>

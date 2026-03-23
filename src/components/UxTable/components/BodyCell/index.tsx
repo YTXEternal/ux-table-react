@@ -128,7 +128,7 @@ const BodyCellInner = <RecordType,>({
                     onCancel={cancelEdit}
                 />
             ) : (
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'flex', justifyContent: isLineNumberCol ? 'center' : 'flex-start' }}>
+                <div className={`ux-table-body-cell-inner ${isLineNumberCol ? 'ux-table-body-cell-line-number' : 'ux-table-body-cell-content'}`}>
                     {column.render ? column.render(value, record, rowIndex) : (value as React.ReactNode)}
                 </div>
             )}
