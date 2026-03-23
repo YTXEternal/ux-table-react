@@ -177,7 +177,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             fixed: 'left',
             editable: false,
             resizable: false,
-            render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#bfbfbf', userSelect: 'none', width: '100%' }}>{index + 1}</div>
+            render: (_: unknown, __: DataSource[number], index: number) => <div style={{ textAlign: 'center', color: '#9ca3af', userSelect: 'none', width: '100%', fontSize: '12px' }}>{index + 1}</div>
         } as unknown as UxTableColumn<DataSource[number]>);
 
         let targetRows = propData.length;
@@ -278,7 +278,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
     // 样式变量
     const tableStyleVariables = useMemo(() => {
         if (!primaryColor) return {};
-        
+
         let bgColor = '#e6f7ff';
         if (primaryColor.startsWith('#')) {
             let r = 0, g = 0, b = 0;
@@ -993,6 +993,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
                     width: `${colVirtualizer.getTotalSize()}px`,
                     position: 'relative',
+                    background: '#fcfcfc', // 表格空白区域背景色
                 }}>
                     {/* 渲染表头 */}
                     <div style={{
@@ -1001,6 +1002,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                         zIndex: 3,
                         display: 'flex',
                         height: '40px', // 固定表头高度
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)', // 表头底部微弱阴影
                     }} data-testid="ux-table-header-row">
                         {colVirtualizer.getVirtualItems().map(renderHeaderCell)}
                     </div>
@@ -1040,7 +1042,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             </div>
 
             {/* 底部标签页与滚动条区域 */}
-            <div className="ux-table-bottom-bar">
+            <div className="ux-table-bottom-bar" style={{ boxShadow: '0 -1px 2px rgba(0,0,0,0.02)', zIndex: 4 }}>
                 {/* 左侧：标签页 (暂作示例) */}
                 <div className="ux-table-tabs">
                 </div>

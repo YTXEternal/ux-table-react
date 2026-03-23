@@ -51,7 +51,10 @@ export const CellEditor: React.FC<CellEditorProps> = ({ initialValue, onSave, on
                 padding: '6px 14px',
                 outline: 'none',
                 fontFamily: 'inherit',
-                fontSize: 'inherit'
+                fontSize: '13px',
+                color: '#1f2937',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 0 0 2px var(--ux-primary-color-bg, rgba(24, 144, 255, 0.2))'
             }}
         />
     );
