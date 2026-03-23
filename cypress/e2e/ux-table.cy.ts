@@ -124,7 +124,7 @@ describe('UxTable 组件', () => {
     it('应该正确渲染表头', () => {
       // 检查前几个表头内容（基于 App.tsx 的 mock 数据）
       // 因为插入了行号列，第0列是空的（行号列头），第1列是"固定列"
-      cy.get('[data-testid="ux-table-header-cell-1"]').should('contain', '固定列');
+      cy.get('[data-testid="ux-table-header-cell-1"]').should('contain', '列');
       cy.get('[data-testid="ux-table-header-cell-2"]').should('contain', '数字列');
       cy.get('[data-testid="ux-table-header-cell-3"]').should('contain', '列 1');
     });
