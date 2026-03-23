@@ -1,5 +1,4 @@
 import React, { memo } from 'react';
-import styles from '../../styles.module.css';
 import type { HeaderCellProps } from './types';
 
 /**
@@ -38,13 +37,13 @@ const HeaderCellInner = <RecordType,>({
      * 计算表头单元格的 className 组合
      */
     const classNames = [
-        styles['ux-table-cell'],
-        styles['ux-table-header-cell'],
-        isFixed ? styles['ux-table-cell-fixed'] : styles['ux-table-cell-absolute'],
-        offset?.isLastLeft ? styles['ux-table-shadow-left'] : '',
-        offset?.isFirstRight ? styles['ux-table-shadow-right'] : '',
-        isSelected ? styles['ux-table-cell-selected'] : '',
-        isSelected ? styles['ux-table-selection-border'] : ''
+        'ux-table-cell-base',
+        'ux-table-header-cell',
+        isFixed ? 'sticky' : 'absolute',
+        offset?.isLastLeft ? 'ux-table-shadow-left' : '',
+        offset?.isFirstRight ? 'ux-table-shadow-right' : '',
+        isSelected ? 'ux-table-cell-selected' : '',
+        isSelected ? 'ux-table-selection-border' : ''
     ].filter(Boolean).join(' ');
 
     const borderVars = {} as React.CSSProperties & Record<string, string>;
@@ -72,10 +71,10 @@ const HeaderCellInner = <RecordType,>({
             }}
         >
             {/* 渲染复制/剪切操作时的蚂蚁线效果 */}
-            {isAntsTop && <div className={styles['marching-ants-top']} />}
-            {isAntsBottom && <div className={styles['marching-ants-bottom']} />}
-            {isAntsLeft && <div className={styles['marching-ants-left']} />}
-            {isAntsRight && <div className={styles['marching-ants-right']} />}
+            {isAntsTop && <div className="marching-ants-top" />}
+            {isAntsBottom && <div className="marching-ants-bottom" />}
+            {isAntsLeft && <div className="marching-ants-left" />}
+            {isAntsRight && <div className="marching-ants-right" />}
 
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {column.title as React.ReactNode}

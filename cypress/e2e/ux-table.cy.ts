@@ -48,7 +48,7 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-0-2"]').trigger('mouseup', { force: true });
       cy.get('[data-testid="ux-table-cell-0-2"]').should('have.css', 'background-color').and('include', 'rgb(230, 247, 255)');
 
-      cy.get('.ux-table-main').trigger('keydown', { key: 'Escape' });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'Escape' });
       cy.get('[data-testid="ux-table-cell-0-2"]').should('not.have.css', 'background-color', 'rgb(230, 247, 255)');
     });
 
@@ -61,12 +61,12 @@ describe('UxTable 组件', () => {
 
       // 撤销 (由于我们需要模拟在选中状态下按键)
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
-      cy.get('.ux-table-main').trigger('keydown', { key: 'z', ctrlKey: true });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'z', ctrlKey: true });
       // 应该恢复为 "数据 0-1" (defaultDemo 中的初始数据)
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', '数据 0-1');
 
       // 恢复
-      cy.get('.ux-table-main').trigger('keydown', { key: 'y', ctrlKey: true });
+      cy.get('.ux-table-main-scrollbar').trigger('keydown', { key: 'y', ctrlKey: true });
       cy.get('[data-testid="ux-table-cell-0-1"]').should('contain', 'Edited Value');
     });
 
