@@ -49,7 +49,7 @@
 }
 
 .cellContent {
-  @apply overflow-hidden text-ellipsis w-full flex;
+  @apply overflow-hidden text-ellipsis w-full;
 }
 
 /* CellEditor */
