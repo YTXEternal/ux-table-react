@@ -4,7 +4,11 @@ export default defineConfig({
   title: "UX Table React",
   description: "强大的 React 表格组件",
   base: '/ux-table-react/',
+  head: [
+    ['link', { rel: 'icon', href: '/ux-table-react/logo.svg' }]
+  ],
   themeConfig: {
+    logo: '/logo.svg',
     nav: [
       { text: '首页', link: '/' },
       { text: '指南', link: '/guide/' },

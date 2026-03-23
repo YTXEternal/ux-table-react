@@ -11,7 +11,7 @@ describe('UxTable 性能测试', () => {
         // 等待表格渲染完成
         cy.get('[data-testid="ux-table-header-row"]', { timeout: 60000 }).should('exist');
 
-        cy.window().then((win) => {
+        cy.window({ timeout: 60000 }).then((win) => {
             return new Cypress.Promise((resolve) => {
                 // 等待页面稳定
                 setTimeout(() => {

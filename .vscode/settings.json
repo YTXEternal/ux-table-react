@@ -5,8 +5,10 @@
   "explorer.fileNesting.patterns": {
     ".env": ".env.*",
     "package.json": "package-lock.json, pnpm-lock.yaml, yarn.lock",
-    "vite.config.ts": "vite.config.*, vitest.config.*, cypress.config.*, jest.config.*, uno.config.*, commitlint.config.*, eslint.config.*",
-    "tsconfig.json": "tsconfig.*.json"
+    "vite.config.ts": "vite.config.*, vite.*.config.ts, uno.config.*, commitlint.config.*, eslint.config.*",
+    "tsconfig.json": "tsconfig.*.json",
+    ".gitignore":".gitignore, .npmignore, .npmrc",
+    "jest.config.ts":"jest.config.ts, cypress.config.*, jest.setup.ts"
   },
   "css.lint.unknownAtRules": "ignore"
 }
