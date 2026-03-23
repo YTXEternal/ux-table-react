@@ -204,10 +204,9 @@ describe('UxTable 组件', () => {
       // 单击第一个单元格
       cy.get('[data-testid="ux-table-cell-0-0"]').click();
 
-      // 检查是否具有活动选中状态的 box-shadow
+      // 检查是否具有活动选中状态的 class
       cy.get('[data-testid="ux-table-cell-0-0"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)'); // #1890ff 对应的 rgb
+        .should('have.class', 'ux-table-selection-border');
     });
 
     it('单击表头应该选中整列', () => {
@@ -257,16 +256,14 @@ describe('UxTable 组件', () => {
 
       // 右侧相邻的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-0-2"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)');
+        .should('have.class', 'ux-table-selection-border');
 
       // 按下向下箭头
       cy.get('body').type('{downarrow}');
 
       // 下方的单元格应该变为激活状态
       cy.get('[data-testid="ux-table-cell-1-2"]')
-        .should('have.css', 'box-shadow')
-        .and('include', 'rgb(24, 144, 255)');
+        .should('have.class', 'ux-table-selection-border');
     });
   });
 
