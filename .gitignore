@@ -30,4 +30,4 @@ docs/.vitepress/cache/*
 
 cypress/screenshots/*
 
-
+pnpm-lock.yaml
