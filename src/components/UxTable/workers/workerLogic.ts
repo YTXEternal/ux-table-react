@@ -26,7 +26,7 @@ export const processCopy = (
         }
     }
     const text = rows.join('\n');
-    return text ? text + '\n' : '';
+    return text + '\n';
 };
 
 /**
