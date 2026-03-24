@@ -1,7 +1,7 @@
 {
   "name": "ux-table-react",
   "private": false,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "一个高性能的 React 表格组件，支持虚拟滚动、单元格编辑、列排序和固定列等高级特性，基于 UnoCSS 打造。",
   "keywords": [
     "react",
