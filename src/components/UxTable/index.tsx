@@ -766,8 +766,58 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
             if (allowPaste === false) return; // 卫语句：外部阻止粘贴
         }
 
+        let currentFinalData = finalData as Record<string, unknown>[];
+        let currentSortedData = sortedData as Record<string, unknown>[];
+        let currentColumns = columns;
+
+        if (infinite) {
+            try {
+                const parsedRows = await postWorkerMessage({
+                    type: 'PASTE_PARSE',
+                    data: { text }
+                }) as string[][] | null;
+
+                if (parsedRows && parsedRows.length > 0) {
+                    const requiredRows = startRow + parsedRows.length;
+                    const maxColsInPaste = Math.max(...parsedRows.map((row: string[]) => row.length));
+                    const requiredCols = startCol + maxColsInPaste;
+
+                    const additionalRows = Math.max(0, requiredRows - finalData.length);
+                    const additionalCols = Math.max(0, requiredCols - columns.length);
+
+                    if (additionalRows > 0 || additionalCols > 0) {
+                        if (additionalCols > 0) {
+                            currentColumns = fillGridColumns([...columns], columns.length + additionalCols, infinite.headerText);
+                            setExpandedCols(prev => prev + additionalCols);
+                        }
+
+                        if (additionalRows > 0) {
+                            const newRowsData = new Array(additionalRows).fill(null).map((_, i) => {
+                                const newRow: Record<string, unknown> = {};
+                                if (typeof rowKey === 'string') {
+                                    newRow[rowKey] = `_grid_row_${finalData.length + i}`;
+                                }
+                                currentColumns.forEach(col => {
+                                    const dataIndex = col.dataIndex as string;
+                                    newRow[dataIndex] = null;
+                                });
+                                return newRow;
+                            });
+
+                            currentFinalData = [...finalData, ...newRowsData] as Record<string, unknown>[];
+                            currentSortedData = [...sortedData, ...newRowsData] as Record<string, unknown>[];
+
+                            setExpandedRows(prev => prev + additionalRows);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Paste parse for infinite expansion failed:', error);
+            }
+        }
+
         try {
-            const sanitizedColumns = columns.map(col => ({
+            const sanitizedColumns = currentColumns.map(col => ({
                 key: col.key,
                 editable: col.editable,
                 dataIndex: col.dataIndex
@@ -777,8 +827,8 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 type: 'PASTE',
                 data: {
                     text,
-                    finalData: finalData as Record<string, unknown>[],
-                    sortedData: sortedData as Record<string, unknown>[],
+                    finalData: currentFinalData,
+                    sortedData: currentSortedData,
                     columns: sanitizedColumns,
                     startRow,
                     startCol,
@@ -1008,7 +1058,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                 onWheel={handleWheel}
                 className={`scrollbar-thin ux-table-main-scrollbar ${styles.mainScrollContainer}`}
             >
-                <div 
+                <div
                     className={styles.virtualContainer}
                     style={{
                         height: `${rowVirtualizer.getTotalSize() + (1 * CELL_HEIGHT)}px`,
@@ -1016,7 +1066,7 @@ export const UxTable = <DataSource extends unknown[]>(props: UxTableProps<DataSo
                     }}
                 >
                     {/* 渲染表头 */}
-                    <div 
+                    <div
                         className={styles.headerRow}
                         data-testid="ux-table-header-row"
                     >

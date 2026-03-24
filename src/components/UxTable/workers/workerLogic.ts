@@ -133,24 +133,32 @@ export const processPaste = (
 
     parsedRows.forEach((cells: string[], rIdx: number) => {
         const targetRowIdx = startRow + rIdx;
-        if (targetRowIdx >= sortedData.length) return; // 卫语句：越界跳过
+        if (targetRowIdx >= sortedData.length) {
+            return; // 卫语句：越界跳过
+        }
 
         maxRowIdx = Math.max(maxRowIdx, targetRowIdx);
 
         const record = sortedData[targetRowIdx];
         const originalIndex = finalData.indexOf(record);
-        if (originalIndex === -1) return; // 卫语句：找不到原数据索引跳过
+        if (originalIndex === -1) {
+            return; // 卫语句：找不到原数据索引跳过
+        }
 
         const newRecord = { ...newData[originalIndex] };
 
         cells.forEach((cellStr: string, cIdx: number) => {
             const targetColIdx = startCol + cIdx;
-            if (targetColIdx >= columns.length) return; // 卫语句：越界跳过
+            if (targetColIdx >= columns.length) {
+                return; // 卫语句：越界跳过
+            }
 
             maxColIdx = Math.max(maxColIdx, targetColIdx);
 
             const column = columns[targetColIdx];
-            if (column.editable === false || column.key === '_line_number_') return; // 卫语句：不可编辑或行号列跳过
+            if (column.editable === false || column.key === '_line_number_') {
+                return; // 卫语句：不可编辑或行号列跳过
+            }
 
             newRecord[column.dataIndex as string] = cellStr;
             changed = true;

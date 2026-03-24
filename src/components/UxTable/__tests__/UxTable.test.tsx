@@ -270,7 +270,7 @@ describe('UxTable 组件', () => {
       // Press Ctrl+C to copy
       await act(async () => {
         fireEvent.keyDown(headerCell, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       // Verify animation is triggered on header cell
@@ -302,7 +302,7 @@ describe('UxTable 组件', () => {
       // Press Ctrl+C to copy
       await act(async () => {
         fireEvent.keyDown(lineNumCell, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       // The component internally uses useClipboard hook which we should ideally mock, 
@@ -331,7 +331,7 @@ describe('UxTable 组件', () => {
       // Copy
       await act(async () => {
         fireEvent.keyDown(cell01, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       // Verify ants are there
@@ -360,7 +360,7 @@ describe('UxTable 组件', () => {
       // Copy
       await act(async () => {
         fireEvent.keyDown(cell01, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       // Verify ants are there
@@ -391,7 +391,7 @@ describe('UxTable 组件', () => {
       // Copy
       await act(async () => {
         fireEvent.keyDown(cell00, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       }); // 等待异步
       expect(beforeCopy).toHaveBeenCalledTimes(1);
       expect(afterCopy).not.toHaveBeenCalled(); // 复制被阻止
@@ -405,7 +405,7 @@ describe('UxTable 组件', () => {
 
       await act(async () => {
         fireEvent.keyDown(cell00, { key: 'c', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       }); // 等待异步
       expect(beforeCopy).toHaveBeenCalledTimes(2);
       expect(afterCopy).toHaveBeenCalledTimes(1); // 复制成功触发
@@ -479,7 +479,7 @@ describe('UxTable 组件', () => {
       // Cut
       await act(async () => {
         fireEvent.keyDown(cell01, { key: 'x', ctrlKey: true });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       let cellElement = screen.getByTestId('ux-table-cell-0-1');
@@ -512,7 +512,7 @@ describe('UxTable 组件', () => {
       // Press Delete
       await act(async () => {
         fireEvent.keyDown(cell01, { key: 'Delete' });
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       expect(onDataChange).toHaveBeenCalledTimes(1);
@@ -546,7 +546,7 @@ describe('UxTable 组件', () => {
       }
 
       // Wait for async worker fallback
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(onDataChange).toHaveBeenCalledTimes(1);
       const calledData = onDataChange.mock.calls[0][0];
@@ -577,7 +577,7 @@ describe('UxTable 组件', () => {
       if (tableMain) {
         await act(async () => {
           fireEvent(tableMain, pasteEvent);
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         });
       }
 
@@ -619,7 +619,7 @@ describe('UxTable 组件', () => {
       if (tableMain) {
         await act(async () => {
           fireEvent(tableMain, pasteEvent);
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         });
       }
 
@@ -645,13 +645,79 @@ describe('UxTable 组件', () => {
       if (tableMain) {
         await act(async () => {
           fireEvent(tableMain, pasteEvent);
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         });
       }
 
       expect(beforePaste).toHaveBeenCalledTimes(2);
       expect(onDataChange).toHaveBeenCalledTimes(1);
       expect(afterPaste).toHaveBeenCalledTimes(1);
+    });
+
+    it('当粘贴数据量大于当前表格且配置了 infinite 时，应自动扩充并覆盖所选区域', async () => {
+      const user = userEvent.setup();
+      const onDataChange = jest.fn();
+      const infinite = { row: 5, col: 5, gap: 2 };
+
+      const { container } = render(
+        <UxTable
+          columns={columns}
+          data={data}
+          rowKey="key"
+          onDataChange={onDataChange}
+          isWorker={false}
+          infinite={infinite}
+        />
+      );
+
+      // Start pasting from the first data cell (0, 1) -> (row 0, col 1: name)
+      const cell01 = screen.getByTestId('ux-table-cell-0-1');
+      await user.click(cell01);
+
+      const tableMain = container.querySelector('.ux-table-main-scrollbar');
+
+      // Create a 20x20 paste content.
+      // Original data is 2 rows, but might be expanded to 12 by the infinite effect.
+      // Pasting 20 rows will definitely trigger the paste expansion.
+      const pasteRows = [];
+      for (let i = 0; i < 20; i++) {
+        const row = [];
+        for (let j = 0; j < 20; j++) {
+          row.push(`Cell${i}_${j}`);
+        }
+        pasteRows.push(row.join('\t'));
+      }
+      const pasteText = pasteRows.join('\n');
+
+      const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(pasteEvent, 'clipboardData', {
+        value: { getData: jest.fn().mockReturnValue(pasteText) }
+      });
+
+      if (tableMain) {
+        await act(async () => {
+          fireEvent(tableMain, pasteEvent);
+          await new Promise(resolve => setTimeout(resolve, 50));
+        });
+      }
+
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      const newData = onDataChange.mock.calls[0][0];
+
+      // Since we paste from row 0, and paste 20 rows, we need at least 20 rows.
+      // Depending on initial state (e.g. 12), it should expand by Math.max(0, 20 - 12) = 8.
+      // So final length should be 20.
+      expect(newData.length).toBeGreaterThanOrEqual(20);
+
+      // Check first row (modified existing)
+      expect(newData[0].name).toBe('Cell0_0');
+      expect(newData[0].age).toBe('Cell0_1'); // age column
+      expect(newData[0]['_grid_col_3']).toBe('Cell0_2'); // first expanded column
+
+      // Check last pasted row
+      expect(newData[19].name).toBe('Cell19_0');
+      expect(newData[19].age).toBe('Cell19_1');
+      expect(newData[19]['_grid_col_3']).toBe('Cell19_2');
     });
   });
 
@@ -738,7 +804,7 @@ describe('UxTable 组件', () => {
       fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
       // wait for useEditing internal handleDataChange to be called
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Depending on the implementation, onDataChange might be called once or twice 
       // (e.g., intermediate states). We just need to get the latest change.
@@ -769,7 +835,7 @@ describe('UxTable 组件', () => {
       if (tableMain) {
         await act(async () => {
           fireEvent.keyDown(tableMain, { key: 'z', ctrlKey: true });
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         });
       }
 
@@ -797,7 +863,7 @@ describe('UxTable 组件', () => {
       if (tableMain) {
         await act(async () => {
           fireEvent.keyDown(tableMain, { key: 'y', ctrlKey: true });
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         });
       }
 

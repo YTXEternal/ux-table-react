@@ -106,6 +106,40 @@ describe('UxTable 组件', () => {
       cy.get('[data-testid="ux-table-cell-1-2"]').should('contain.text', 'Pasted 4');
     });
 
+    it('当粘贴数据量大于当前表格时，应该自动扩充并覆盖所选区域', () => {
+      cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
+
+      // 构造要粘贴的文本，比如 10x10，肯定大于初始的渲染区域
+      const rows = [];
+      for(let i=0; i<10; i++) {
+        const cols = [];
+        for(let j=0; j<10; j++) {
+          cols.push(`E2E_${i}_${j}`);
+        }
+        rows.push(cols.join('\t'));
+      }
+      const pasteText = rows.join('\n');
+
+      cy.get('[class*="ux-table-main"]').then($main => {
+        // 创建并触发粘贴事件
+        const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+        Object.defineProperty(pasteEvent, 'clipboardData', {
+          value: { getData: () => pasteText }
+        });
+        $main[0].dispatchEvent(pasteEvent);
+      });
+
+      // 验证数据是否被正确更新并扩容
+      cy.wait(500); // 留点时间给 worker
+      
+      // 检查扩充后的最后一个单元格 (第9行，第10列，考虑到行号列，索引为9, 10)
+      // 需要滚动到底部和右侧才能看到
+      cy.get('.ux-table-main-scrollbar').scrollTo('bottom');
+      cy.get('.ux-table-scrollbar-x-container').scrollTo('right');
+      
+      cy.get('[data-testid="ux-table-cell-9-10"]').should('exist').and('contain.text', 'E2E_9_9');
+    });
+
     it('应该支持按 Delete 键删除选区内容', () => {
       // 选中单元格
       cy.get('[data-testid="ux-table-cell-0-1"]').click({ force: true });
