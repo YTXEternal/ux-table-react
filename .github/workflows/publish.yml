@@ -36,18 +36,6 @@ jobs:
         run: pnpm run build
 
       - name: Publish package
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "尝试使用 OIDC (--provenance) 进行发布..."
-          if npm publish --provenance --access public; then
-            echo "OIDC发布成功"
-          else
-            echo "OIDC发布失败，尝试降级使用 Token 进行发布..."
-            if npm publish --access public; then
-              echo "Token发布成功"
-            else
-              echo "Token发布也失败了"
-              exit 1
-            fi
-          fi
