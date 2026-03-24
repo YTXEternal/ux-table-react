@@ -23,7 +23,7 @@ jobs:
           version: 8
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "18"
           registry-url: "https://registry.npmjs.org/"
@@ -36,4 +36,6 @@ jobs:
         run: pnpm run build
 
       - name: Publish package
-        run: npm publish --provenance --access public
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
